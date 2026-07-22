@@ -1,0 +1,72 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-container">
+        <img src="logo.png" alt="Huellitas Logo" class="logo">
+      </div>
+      <h2>Acceso al Personal</h2>
+      <p class="subtitle">Ingresa tus credenciales para continuar</p>
+    </div>
+
+    <div class="login-body">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        
+        <div class="form-group">
+          <label for="usuario">Usuario</label>
+          <div class="input-with-icon">
+            <input 
+              type="text" 
+              id="usuario" 
+              formControlName="usuario" 
+              placeholder="Ej: admin" 
+              [class.is-invalid]="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched"
+            >
+            <span class="material-symbols-rounded">person</span>
+          </div>
+          <div class="error-text" *ngIf="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
+            <span class="material-symbols-rounded">error</span> El usuario es requerido.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="contrasenia">Contraseña</label>
+          <div class="input-with-icon">
+            <input 
+              type="password" 
+              id="contrasenia" 
+              formControlName="contrasenia" 
+              placeholder="••••••••"
+              [class.is-invalid]="loginForm.get('contrasenia')?.invalid && loginForm.get('contrasenia')?.touched"
+            >
+            <span class="material-symbols-rounded">lock</span>
+          </div>
+          <div class="error-text" *ngIf="loginForm.get('contrasenia')?.invalid && loginForm.get('contrasenia')?.touched">
+            <span class="material-symbols-rounded">error</span> La contraseña es requerida.
+          </div>
+        </div>
+
+        <div class="alert-danger" *ngIf="errorMessage">
+          <span class="material-symbols-rounded">warning</span> {{ errorMessage }}
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
+          <span *ngIf="!isLoading" style="display:flex; align-items:center; gap:0.5rem">
+            Iniciar Sesión <span class="material-symbols-rounded" style="font-size: 1.1rem">arrow_forward</span>
+          </span>
+          <span *ngIf="isLoading" style="display:flex; align-items:center; gap:0.5rem">
+            <span class="material-symbols-rounded" style="animation: spin 1s linear infinite">sync</span> Cargando...
+          </span>
+        </button>
+        
+        <button type="button" class="btn-secondary" (click)="volver()">
+          <span class="material-symbols-rounded" style="font-size: 1.1rem">home</span> Volver al Inicio
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>

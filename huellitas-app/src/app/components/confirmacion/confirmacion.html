@@ -1,0 +1,98 @@
+<div class="confirmacion-wrapper">
+  <!-- Header Corporativo Blindado -->
+  <header class="corp-header">
+    <div class="header-left">
+      <img src="logo.png" alt="Huellitas Grooming & Spa Logo" class="corp-logo">
+      <h1>Huellitas Grooming & Spa</h1>
+    </div>
+    <div class="header-center"></div>
+    <div class="header-right">
+      <button class="btn-login" (click)="irALogin()">
+        <i class="fas fa-user"></i>
+        <span>Login</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="confirmacion-main">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" class="check-svg">
+        <circle cx="12" cy="12" r="10" class="circle"></circle>
+        <path d="M8 12.5l3 3 6-6" class="check-path"></path>
+      </svg>
+    </div>
+    
+    <h1 class="success-title">¡Tu reserva se ha realizado con éxito!</h1>
+    
+    <div class="info-card">
+      <h3>¿Qué sigue ahora?</h3>
+      <ol class="steps-list">
+        <li><strong>Validación:</strong> Nuestro equipo verificará la captura del adelanto.</li>
+        <li><strong>Confirmación:</strong> Si todo es correcto, tu cita pasará a estar "Confirmada" y te estaremos escribiendo dentro de poco al número que nos brindaste.</li>
+        <li><strong>Día de la Cita:</strong> Te esperamos con tu amigo peludo 10 minutos antes de la hora acordada.</li>
+      </ol>
+      <div class="policies">
+        <h4>Políticas de Cancelación</h4>
+        <p>Si necesitas reprogramar o cancelar, por favor contáctanos con al menos 24 horas de anticipación. El adelanto no es reembolsable en cancelaciones de último minuto.</p>
+      </div>
+    </div>
+
+    <div class="contact-section">
+      <h3>¿Tienes dudas? Contáctanos</h3>
+      <a href="tel:+51 971 822 790" class="phone-link">
+        <i class="fa fa-phone"></i> +51 971 822 790
+      </a>
+    </div>
+
+    <button class="btn-return" (click)="regresar()">
+      Regresar al área de reservas
+    </button>
+  </main>
+
+  <!-- Footer Corporativo -->
+  <footer class="main-footer">
+    <div class="footer-columns">
+      <!-- Columna 1: Marca -->
+      <div class="footer-col brand-col">
+        <img src="logo.png" alt="Logo Huellitas Grooming & Spa" class="footer-logo">
+        <h3 class="footer-brand-name">Huellitas Grooming & Spa</h3>
+        <p class="footer-slogan">"De todo para sus amigos"</p>
+      </div>
+      
+      <!-- Columna 2: Sedes -->
+      <div class="footer-col">
+        <h4 class="footer-col-title">Nuestras Sedes</h4>
+        <ul class="footer-list">
+          <li><span>📍</span> <strong>𝐏𝐄𝐓𝐒𝐇𝐎𝐏</strong> - Abtao 471, Iquitos.</li>
+          <li><span>📍</span> <strong>𝐆𝐑𝐎𝐎𝐌𝐈𝐍𝐆</strong> - Nanay 735, Iquitos.</li>
+        </ul>
+      </div>
+
+      <!-- Columna 3: Contacto y Redes -->
+      <div class="footer-col">
+        <h4 class="footer-col-title">Contacto</h4>
+        <ul class="footer-list">
+          <li><span>📞</span> +51 971 822 790 (Principal)</li>
+          <li><span>📞</span> +51 948 305 999</li>
+        </ul>
+        <div class="footer-socials">
+          <a href="https://www.facebook.com/Huellitas.iquitos/" target="_blank" class="social-link" title="Facebook">
+            <svg class="social-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96C18.34 21.21 22 17.06 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/>
+            </svg>
+            <span>Huellitas Petshop & Grooming</span>
+          </a>
+          <a href="https://www.instagram.com/huellitas_iquitos/" target="_blank" class="social-link" title="Instagram">
+            <svg class="social-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.8 2H16.2C19.4 2 22 4.6 22 7.8V16.2C22 19.4 19.4 22 16.2 22H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2ZM7.6 4C5.6 4 4 5.6 4 7.6V16.4C4 18.4 5.6 20 7.6 20H16.4C18.4 20 20 18.4 20 16.4V7.6C20 5.6 18.4 4 16.4 4H7.6ZM12 7.25C14.62 7.25 16.75 9.38 16.75 12C16.75 14.62 14.62 16.75 12 16.75C9.38 16.75 7.25 14.62 7.25 12C7.25 9.38 9.38 7.25 12 7.25ZM12 9.25C10.48 9.25 9.25 10.48 9.25 12C9.25 13.52 10.48 14.75 12 14.75C13.52 14.75 14.75 13.52 14.75 12C14.75 10.48 13.52 9.25 12 9.25ZM17.25 5.5C17.94 5.5 18.5 6.06 18.5 6.75C18.5 7.44 17.94 8 17.25 8C16.56 8 16 7.44 16 6.75C16 6.06 16.56 5.5 17.25 5.5Z"/>
+            </svg>
+            <span>@huellitas_iquitos</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Huellitas Grooming & Spa. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

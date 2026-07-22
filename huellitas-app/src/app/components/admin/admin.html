@@ -1,0 +1,198 @@
+<div class="admin-container">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="logo.png" alt="Huellitas" class="logo">
+      <h3>Admin Panel</h3>
+    </div>
+    
+    <div class="user-info" *ngIf="usuario">
+      <div class="user-avatar">
+        {{ usuario.nombre.charAt(0).toUpperCase() }}
+      </div>
+      <div class="user-details">
+        <p class="user-name">{{ usuario.nombre }}</p>
+        <span class="badge-role">{{ usuario.rol | uppercase }}</span>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <a href="javascript:void(0)" (click)="scrollTo('dashboard', $event)" class="nav-item">
+        <span class="material-symbols-rounded">dashboard</span>
+        Dashboard
+      </a>
+      <a href="javascript:void(0)" (click)="scrollTo('personal', $event)" class="nav-item">
+        <span class="material-symbols-rounded">group</span>
+        Gestión de Personal
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" (click)="logout()">
+        <span class="material-symbols-rounded">logout</span> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="material-symbols-rounded" style="color: var(--primary-color); font-size: 1.8rem">admin_panel_settings</span>
+        <h2>Panel de Control</h2>
+      </div>
+      <span class="date-today">
+        <span class="material-symbols-rounded" style="font-size: 1.2rem">today</span>
+        Estadísticas del Día
+      </span>
+    </header>
+
+    <div class="content-area">
+      <!-- DASHBOARD SECTION -->
+      <section id="dashboard" class="section">
+        <h3 class="section-title">
+          <span class="material-symbols-rounded">monitoring</span> Métricas del Día
+        </h3>
+        
+        <div class="stats-grid">
+          <div class="stat-card ingresos">
+            <div class="stat-header">
+              <h4>Generado (Hoy)</h4>
+              <div class="stat-icon"><span class="material-symbols-rounded">payments</span></div>
+            </div>
+            <p class="stat-value">S/. {{ totalIngresos }}</p>
+          </div>
+          
+          <div class="stat-card ingresos-mes">
+            <div class="stat-header">
+              <h4>Acumulado Mes</h4>
+              <div class="stat-icon"><span class="material-symbols-rounded">account_balance</span></div>
+            </div>
+            <p class="stat-value">S/. {{ totalIngresosMes }}</p>
+          </div>
+
+          <div class="stat-card confirmadas">
+            <div class="stat-header">
+              <h4>Confirmadas</h4>
+              <div class="stat-icon"><span class="material-symbols-rounded">task_alt</span></div>
+            </div>
+            <p class="stat-value">{{ totalConfirmadas }}</p>
+          </div>
+          
+          <div class="stat-card pendientes">
+            <div class="stat-header">
+              <h4>Pendientes</h4>
+              <div class="stat-icon"><span class="material-symbols-rounded">hourglass_empty</span></div>
+            </div>
+            <p class="stat-value">{{ totalPendientes }}</p>
+          </div>
+          
+          <div class="stat-card canceladas">
+            <div class="stat-header">
+              <h4>Canceladas</h4>
+              <div class="stat-icon"><span class="material-symbols-rounded">cancel</span></div>
+            </div>
+            <p class="stat-value">{{ totalCanceladas }}</p>
+          </div>
+        </div>
+
+        <div class="ranking-section" *ngIf="rankingRazas.length > 0">
+          <h4><span class="material-symbols-rounded" style="color: #f59e0b">stars</span> Top Razas Atendidas (Hoy)</h4>
+          <ul class="ranking-list">
+            <li *ngFor="let item of rankingRazas">
+              <span class="raza-name">
+                <span class="material-symbols-rounded" style="color: #94a3b8; font-size: 1.1rem">pets</span>
+                {{ item.raza }}
+              </span>
+              <span class="badge-count">{{ item.cantidad }} citas</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- STAFF MANAGEMENT SECTION -->
+      <section id="personal" class="section mt-5">
+        <h3 class="section-title">
+          <span class="material-symbols-rounded">manage_accounts</span> Gestión de Personal
+        </h3>
+
+        <div class="personal-grid">
+          
+          <!-- Nuevo Trabajador -->
+          <div class="card form-card">
+            <h4><span class="material-symbols-rounded" style="color: var(--secondary-color)">person_add</span> Registrar Trabajador</h4>
+            <form [formGroup]="trabajadorForm" (ngSubmit)="registrarTrabajador()">
+              <div class="form-group">
+                <label>Nombre Completo</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-rounded">badge</span>
+                  <input type="text" formControlName="nombre" placeholder="Ej. Juan Pérez">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Usuario (Login)</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-rounded">account_circle</span>
+                  <input type="text" formControlName="usuario" placeholder="Ej. jperez">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Contraseña</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-rounded">lock</span>
+                  <input type="password" formControlName="contrasenia" placeholder="Mínimo 6 caracteres">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" [disabled]="trabajadorForm.invalid || registrando">
+                <span *ngIf="!registrando" style="display:flex; align-items:center; gap:0.5rem">
+                  <span class="material-symbols-rounded">save</span> Crear Cuenta
+                </span>
+                <span *ngIf="registrando" style="display:flex; align-items:center; gap:0.5rem">
+                  <span class="material-symbols-rounded" style="animation: spin 1s linear infinite">sync</span> Guardando...
+                </span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Lista de Trabajadores -->
+          <div class="card list-card">
+            <h4><span class="material-symbols-rounded" style="color: var(--primary-color)">recent_actors</span> Trabajadores Activos</h4>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Usuario</th>
+                    <th>Caja Actual</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let trab of trabajadores">
+                    <td style="font-weight: 600">{{ trab.nombre }}</td>
+                    <td style="color: #64748b">{{ trab.usuario }}</td>
+                    <td><strong style="color: var(--secondary-color); font-size: 1.1rem">S/. {{ trab.cajaAcumulada }}</strong></td>
+                    <td>
+                      <button class="btn-danger-sm" (click)="eliminarTrabajador(trab._id)">
+                        <span class="material-symbols-rounded" style="font-size: 1.1rem">delete</span> Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="trabajadores.length === 0">
+                    <td colspan="4" class="text-center text-muted" style="padding: 2rem">
+                      <span class="material-symbols-rounded" style="font-size: 2rem; display:block; margin-bottom: 0.5rem">sentiment_dissatisfied</span>
+                      No hay trabajadores registrados.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<style>
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
