@@ -10,8 +10,8 @@ This repository is structured as a **Monorepo**:
 
 \`\`\`text
 huellitas_vs1/
-├── huellitas-app/        # Frontend desarrollado en Angular 21
-└── huellitas-backend/    # Backend desarrollado en Node.js, Express y MongoDB Atlas
+├── adm-app/        # Frontend desarrollado en Angular 21
+└── adm-backend/    # Backend desarrollado en Node.js, Express y MongoDB Atlas
 \`\`\`
 
 ---
@@ -36,16 +36,16 @@ huellitas_vs1/
 
 ### 1. Clonar el repositorio
 \`\`\`bash
-git clone https://github.com/eli4shh/huellitas-pet-project.git
-cd huellitas-pet-project
+git clone https://github.com/eli4shh/adp-proyecto
+cd adm-proyectos
 \`\`\`
 
 ### 2. Configurar y levantar el Backend
 \`\`\`bash
-cd huellitas-backend
+cd adm-backend
 npm install
 \`\`\`
-> **Nota:** Crea un archivo \`.env\` en la carpeta \`huellitas-backend\` guiándote del archivo \`.env.example\` provisto.
+> **Nota:** Crea un archivo \`.env\` en la carpeta \`adm-backend\` guiándote del archivo \`.env.example\` provisto.
 
 Inicia el servidor en modo desarrollo:
 \`\`\`bash
@@ -56,7 +56,7 @@ npm start
 ### 3. Configurar y levantar el Frontend
 En otra terminal:
 \`\`\`bash
-cd huellitas-app
+cd adm-app
 npm install
 ng serve
 # Aplicación web disponible en http://localhost:4200
