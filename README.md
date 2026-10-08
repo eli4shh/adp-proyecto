@@ -1,4 +1,4 @@
-Set-Content -Path ".\README.md" -Value "# 🐾 Huellitas Pet Grooming — Sistema de Gestión y Citas
+Set-Content -Path ".\README.md" -Value "#Sistema de Gestión y Citas
 
 Aplicación web monolítica en estructura Monorepo para la gestión integral de reservas, control operativo de agenda y caja chica de una peluquería canina.
 
