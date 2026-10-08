@@ -9,7 +9,7 @@ Aplicación web monolítica en estructura Monorepo para la gestión integral de 
 This repository is structured as a **Monorepo**:
 
 \`\`\`text
-huellitas_vs1/
+adp-proyectos/
 ├── adm-app/        # Frontend desarrollado en Angular 21
 └── adm-backend/    # Backend desarrollado en Node.js, Express y MongoDB Atlas
 \`\`\`
