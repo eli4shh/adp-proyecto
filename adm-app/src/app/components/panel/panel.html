@@ -1,197 +1,110 @@
-<div class="panel-container">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <img src="logo.png" alt="Huellitas" class="logo">
-      <h3>Huellitas Staff</h3>
+<div class="bandeja-container">
+  <header class="corp-header">
+    <div class="header-left">
+      <span class="corp-brand"><span class="material-symbols-rounded">inventory_2</span></span>
+      <h1>Bandeja de Cotizaciones</h1>
     </div>
-    
-    <div class="user-info" *ngIf="usuario">
-      <div class="user-avatar">
-        {{ usuario.nombre.charAt(0).toUpperCase() }}
-      </div>
-      <div class="user-details">
-        <p class="user-name">Hola, {{ usuario.nombre }}</p>
-        <span class="badge-role">{{ usuario.rol }}</span>
-      </div>
-    </div>
+    <nav class="header-nav">
+      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
+      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
+      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
+    </nav>
+    <app-auth-nav></app-auth-nav>
+  </header>
 
-    <div class="caja-info" *ngIf="usuario">
-      <h4>Caja Actual</h4>
-      <p class="caja-amount">S/. {{ usuario.cajaAcumulada }}</p>
-      <button 
-        class="btn-cerrar-caja" 
-        (click)="cerrarCaja()" 
-        [disabled]="cerrandoCaja || usuario.cajaAcumulada === 0">
-        <span class="material-symbols-rounded" *ngIf="!cerrandoCaja">point_of_sale</span>
-        <span class="material-symbols-rounded" *ngIf="cerrandoCaja" style="animation: spin 1s linear infinite">sync</span>
-        {{ cerrandoCaja ? 'Cerrando...' : 'Cerrar Caja' }}
+  <main class="bandeja-main">
+    <!-- Filtros -->
+    <div class="toolbar">
+      <select class="filtro" [value]="filtroCategoria" #catSel
+        (change)="filtroCategoria = catSel.value">
+        <option value="">Todas las categorías</option>
+        <option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</option>
+      </select>
+      <select class="filtro" [value]="filtroEstado" #estSel
+        (change)="filtroEstado = estSel.value">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let e of estadosPosibles" [value]="e">{{ etiquetaEstado[e] }}</option>
+      </select>
+      <button class="btn btn-ghost" (click)="recargar()">
+        <span class="material-symbols-rounded icon-sm">refresh</span> Recargar
+      </button>
+      <button class="btn btn-primary" (click)="nueva.abrir()">
+        <span class="material-symbols-rounded icon-sm">add</span> Nueva Licitación
       </button>
     </div>
 
-    <div class="sidebar-footer">
-      <button class="btn-logout" (click)="logout()">
-        <span class="material-symbols-rounded">logout</span> Cerrar Sesión
-      </button>
+    <div *ngIf="cargando" class="estado-vacio">Cargando solicitudes…</div>
+    <div *ngIf="!cargando && solicitudesFiltradas.length === 0" class="estado-vacio">
+      No hay solicitudes que coincidan con los filtros seleccionados.
     </div>
-  </aside>
 
-  <main class="main-content">
-    <header class="topbar">
-      <span class="material-symbols-rounded" style="color: var(--primary-color); font-size: 1.8rem">event_note</span>
-      <h2>Reservas Pendientes</h2>
-    </header>
-
-    <div class="content-area">
-      <div *ngIf="cargandoCitas" class="loading-state">
-        <span class="material-symbols-rounded">sync</span>
-        <p>Cargando citas...</p>
-      </div>
-
-      <div *ngIf="!cargandoCitas && citasPendientes.length === 0" class="empty-state">
-        <span class="material-symbols-rounded">inbox</span>
-        <p>No hay citas pendientes por confirmar en este momento.</p>
-      </div>
-
-      <div class="citas-grid" *ngIf="!cargandoCitas && citasPendientes.length > 0">
-        <div class="cita-card" *ngFor="let cita of citasPendientes">
-          
-          <div class="cita-header">
-            <span class="fecha-hora">
-              <span class="material-symbols-rounded">calendar_today</span>
-              {{ cita.fecha }} - {{ cita.hora }}
+    <div class="lista-solicitudes">
+      <article class="solicitud-card" *ngFor="let sol of solicitudesFiltradas">
+        <div class="solicitud-head">
+          <div class="tags">
+            <span class="chip">{{ categoriaNombre(sol.categoria_id) }}</span>
+            <span class="badge"
+              [class.badge-abierta]="sol.estado === 'abierta'"
+              [class.badge-evaluacion]="sol.estado === 'en_evaluacion'"
+              [class.badge-cerrada]="sol.estado === 'cerrada'">
+              {{ etiquetaEstado[sol.estado] }}
             </span>
-            <span class="badge-pendiente">Pendiente</span>
+          </div>
+          <h3>{{ sol.titulo }}</h3>
+          <p class="muted">{{ sol.descripcion }}</p>
+          <p class="meta">
+            Presupuesto referencial: <b class="mono">S/ {{ sol.presupuesto_referencial | number:'1.2-2' }}</b>
+            · Cierre: <span class="mono">{{ sol.fecha_limite }}</span>
+            · Propuestas: <span class="mono">{{ propuestasDe(sol.id).length }}</span>
+          </p>
+        </div>
+
+        <div class="propuestas-block">
+          <h4>Propuestas recibidas ({{ propuestasDe(sol.id).length }})</h4>
+          <div class="tabla-wrap">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Proveedor</th>
+                  <th>Monto</th>
+                  <th>Entrega</th>
+                  <th>Estado</th>
+                  <th>Archivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of propuestasDe(sol.id)">
+                  <td><b>{{ p.proveedor?.razon_social ?? '—' }}</b></td>
+                  <td class="mono">S/ {{ p.monto_cotizado | number:'1.2-2' }}</td>
+                  <td class="mono">{{ p.tiempo_entrega_dias }} días</td>
+                  <td><span class="badge-prop">{{ etiquetaPropuesta[p.estado] }}</span></td>
+                  <td>
+                    <a *ngIf="p.archivo_url" [href]="p.archivo_url" target="_blank">Ver documento</a>
+                    <span class="text-muted" *ngIf="!p.archivo_url">—</span>
+                  </td>
+                </tr>
+                <tr *ngIf="propuestasDe(sol.id).length === 0">
+                  <td colspan="5" class="sin-datos">Aún no hay propuestas para esta solicitud.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div class="cita-body">
-            <p>
-              <span class="material-symbols-rounded">pets</span>
-              <strong>Mascota:</strong> {{ cita.petNombre }} <span style="color:#94a3b8; font-size: 0.85em">({{ cita.petRaza || 'Mestizo' }})</span>
-            </p>
-            <p>
-              <span class="material-symbols-rounded">person</span>
-              <strong>Tutor:</strong> {{ cita.tutorNombre }}
-            </p>
-            <p>
-              <span class="material-symbols-rounded">phone_iphone</span>
-              <strong>Celular:</strong> {{ cita.tutorCelular }}
-            </p>
-            <p *ngIf="cita.observaciones">
-              <span class="material-symbols-rounded">notes</span>
-              <strong>Obs:</strong> {{ cita.observaciones }}
-            </p>
-          </div>
-
-          <div class="voucher-container" *ngIf="cita.urlCaptura">
-            <a [href]="cita.urlCaptura" target="_blank" class="voucher-link">
-              <span class="material-symbols-rounded">image</span> Ver Voucher Completo
+          <div class="acciones">
+            <a class="btn btn-ghost" *ngIf="sol.estado === 'abierta'"
+              [routerLink]="['/postulacion']" [queryParams]="{ solicitudId: sol.id }">
+              <span class="material-symbols-rounded icon-sm">person_add</span> Postular como proveedor
             </a>
-            <img [src]="cita.urlCaptura" alt="Voucher" class="voucher-img-preview" />
-          </div>
-
-          <div class="cita-actions">
-            <button class="btn-whatsapp" (click)="abrirWhatsApp(cita)" title="Contactar por WhatsApp">
-              <span class="material-symbols-rounded" style="font-size: 1.2rem">chat</span>
-            </button>
-            <button class="btn-danger-sm" (click)="cancelarCitaConMotivo(cita)">
-              Cancelar
-            </button>
-            <button class="btn-confirmar" (click)="confirmarCita(cita)">
-              <span class="material-symbols-rounded" style="font-size: 1.2rem">check_circle</span> Confirmar
+            <button class="btn btn-primary" (click)="evaluarSolicitud(sol)"
+              [disabled]="propuestasDe(sol.id).length < 2 || estaEvaluando(sol.id)">
+              <span class="material-symbols-rounded icon-sm">fact_check</span>
+              {{ estaEvaluando(sol.id) ? 'Evaluando…' : 'Evaluar propuestas' }}
             </button>
           </div>
-
         </div>
-      </div>
-
-      <!-- SECCIÓN: Citas Confirmadas de Hoy -->
-      <div class="confirmadas-section" *ngIf="!cargandoCitas">
-        <h3><span class="material-symbols-rounded">task_alt</span> Citas Confirmadas de Hoy</h3>
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Fecha y Hora</th>
-                <th>Cliente</th>
-                <th>Mascota</th>
-                <th>Raza</th>
-                <th>Nº Extra</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let conf of citasConfirmadasHoy">
-                <td style="font-weight: 700">{{ conf.fecha }} - {{ conf.hora }}</td>
-                <td>{{ conf.tutorNombre }}</td>
-                <td style="font-weight: 600; color: var(--primary-color)">{{ conf.petNombre }}</td>
-                <td class="text-muted">{{ conf.petRaza || 'Mestizo' }}</td>
-                <td [class.text-muted]="!conf.tutorCelular2 || conf.tutorCelular2 === '-'">{{ conf.tutorCelular2 || '-' }}</td>
-                <td>
-                  <div class="acciones-container">
-                    <button class="btn-whatsapp-sm" (click)="abrirWhatsApp(conf)">
-                      <span class="material-symbols-rounded" style="font-size: 1.1rem">chat</span> WhatsApp
-                    </button>
-                    <button class="btn-ojito" (click)="abrirExpediente(conf)" title="Ver/Editar Expediente">
-                      <span class="material-symbols-rounded" style="font-size: 1.2rem">visibility</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr *ngIf="citasConfirmadasHoy.length === 0">
-                <td colspan="6" class="text-center text-muted" style="padding: 2rem">
-                  <span class="material-symbols-rounded" style="font-size: 2rem; display:block; margin-bottom: 0.5rem">sentiment_satisfied</span>
-                  No hay citas confirmadas para hoy.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- SECCIÓN: Futuras Citas Confirmadas -->
-      <div class="confirmadas-section futuras-section" *ngIf="!cargandoCitas">
-        <h3><span class="material-symbols-rounded">update</span> Futuras Citas Confirmadas</h3>
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Fecha y Hora</th>
-                <th>Cliente</th>
-                <th>Mascota</th>
-                <th>Raza</th>
-                <th>Nº Extra</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let conf of citasConfirmadasFuturas">
-                <td style="font-weight: 700">{{ conf.fecha }} - {{ conf.hora }}</td>
-                <td>{{ conf.tutorNombre }}</td>
-                <td style="font-weight: 600; color: var(--primary-color)">{{ conf.petNombre }}</td>
-                <td class="text-muted">{{ conf.petRaza || 'Mestizo' }}</td>
-                <td [class.text-muted]="!conf.tutorCelular2 || conf.tutorCelular2 === '-'">{{ conf.tutorCelular2 || '-' }}</td>
-                <td>
-                  <div class="acciones-container">
-                    <button class="btn-whatsapp-sm" (click)="abrirWhatsApp(conf)">
-                      <span class="material-symbols-rounded" style="font-size: 1.1rem">chat</span> WhatsApp
-                    </button>
-                    <button class="btn-ojito" (click)="abrirExpediente(conf)" title="Ver/Editar Expediente">
-                      <span class="material-symbols-rounded" style="font-size: 1.2rem">visibility</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr *ngIf="citasConfirmadasFuturas.length === 0">
-                <td colspan="6" class="text-center text-muted" style="padding: 2rem">
-                  <span class="material-symbols-rounded" style="font-size: 2rem; display:block; margin-bottom: 0.5rem">inbox</span>
-                  No hay citas confirmadas para el futuro.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+      </article>
     </div>
   </main>
+
+  <app-nueva-licitacion #nueva (creada)="onLicitacionCreada($event)"></app-nueva-licitacion>
 </div>

@@ -1,59 +1,48 @@
-# HuellitasApp
+# ADM App — Sistema Inteligente de Planificación, Contratación y Evaluación de Servicios Externos
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Frontend desarrollado en **Angular 21** (Standalone Components) con integración a **Supabase** (PostgreSQL, Auth y RLS).
 
-## Development server
+---
 
-To start a local development server, run:
+## 🚀 Módulos y Rutas Principales
 
+- `/postulacion` (Pública): Formulario de postulación y presentación de cotizaciones para proveedores.
+- `/login` (Pública): Acceso corporativo para el equipo de compras y administración.
+- `/bandeja` (Protegida): Bandeja centralizada de solicitudes de cotización recibidas.
+- `/evaluacion` (Protegida): Módulo de evaluación multicriterio, ponderación y adjudicación de contratos.
+
+---
+
+## 🛠️ Tecnologías
+
+- **Framework:** Angular 21 (Standalone Components)
+- **Lenguaje:** TypeScript 5.9
+- **Estilos:** CSS3 / Vanilla CSS con variables de diseño corporativo (Inter & JetBrains Mono)
+- **Base de Datos & Auth:** Supabase (`@supabase/supabase-js`) con modo Mock fallback automático
+- **Alertas y Notificaciones:** SweetAlert2
+
+---
+
+## ⚙️ Configuración y Desarrollo
+
+### 1. Variables de Entorno
+Copia el archivo `.env.example` a `.env` y define tus credenciales de Supabase:
+```env
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_KEY=tu-anon-key
+FORZAR_MOCK=false
+```
+> *Nota: Si no defines credenciales, la aplicación se ejecutará automáticamente en modo Mock con datos de prueba.*
+
+### 2. Iniciar Servidor de Desarrollo
 ```bash
+npm start
+# o
 ng serve
 ```
+La aplicación estará disponible en `http://localhost:4200/`.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+### 3. Compilación de Producción
 ```bash
-ng generate component component-name
+npm run build
 ```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

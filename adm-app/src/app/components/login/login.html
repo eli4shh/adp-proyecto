@@ -1,72 +1,63 @@
-<div class="login-wrapper">
-  <div class="login-card">
-    <div class="login-header">
-      <div class="logo-container">
-        <img src="logo.png" alt="Huellitas Logo" class="logo">
+<div class="login-page">
+  <!-- Header corporativo (con bloque de sesión) -->
+  <header class="corp-header">
+    <div class="header-left">
+      <span class="corp-brand"><span class="material-symbols-rounded">lock</span></span>
+      <h1>Acceso interno · División de Compras</h1>
+    </div>
+    <app-auth-nav></app-auth-nav>
+  </header>
+
+  <!-- Tarjeta de autenticación -->
+  <main class="login-main">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-card" novalidate>
+      <div class="login-head">
+        <span class="login-icon material-symbols-rounded">admin_panel_settings</span>
+        <h2>Iniciar sesión</h2>
+        <p class="text-muted">Acceso restringido al equipo de administración y compras.</p>
       </div>
-      <h2>Acceso al Personal</h2>
-      <p class="subtitle">Ingresa tus credenciales para continuar</p>
-    </div>
 
-    <div class="login-body">
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-        
-        <div class="form-group">
-          <label for="usuario">Usuario</label>
-          <div class="input-with-icon">
-            <input 
-              type="text" 
-              id="usuario" 
-              formControlName="usuario" 
-              placeholder="Ej: admin" 
-              [class.is-invalid]="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched"
-            >
-            <span class="material-symbols-rounded">person</span>
-          </div>
-          <div class="error-text" *ngIf="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
-            <span class="material-symbols-rounded">error</span> El usuario es requerido.
-          </div>
-        </div>
+      <div class="field">
+        <label for="login-email">Correo corporativo *</label>
+        <input id="login-email" type="email" formControlName="email" autocomplete="username"
+          placeholder="admin@compras.pe">
+        <small class="text-danger" *ngIf="f['email'].errors?.['required'] && f['email'].touched">
+          Requerido.
+        </small>
+        <small class="text-danger" *ngIf="f['email'].errors?.['email'] && f['email'].touched">
+          Ingresa un correo válido.
+        </small>
+      </div>
 
-        <div class="form-group">
-          <label for="contrasenia">Contraseña</label>
-          <div class="input-with-icon">
-            <input 
-              type="password" 
-              id="contrasenia" 
-              formControlName="contrasenia" 
-              placeholder="••••••••"
-              [class.is-invalid]="loginForm.get('contrasenia')?.invalid && loginForm.get('contrasenia')?.touched"
-            >
-            <span class="material-symbols-rounded">lock</span>
-          </div>
-          <div class="error-text" *ngIf="loginForm.get('contrasenia')?.invalid && loginForm.get('contrasenia')?.touched">
-            <span class="material-symbols-rounded">error</span> La contraseña es requerida.
-          </div>
-        </div>
+      <div class="field">
+        <label for="login-password">Contraseña *</label>
+        <input id="login-password" type="password" formControlName="password" autocomplete="current-password"
+          placeholder="••••••••">
+        <small class="text-danger" *ngIf="f['password'].errors?.['required'] && f['password'].touched">
+          Requerido.
+        </small>
+        <small class="text-danger" *ngIf="f['password'].errors?.['minlength'] && f['password'].touched">
+          Mínimo 6 caracteres.
+        </small>
+      </div>
 
-        <div class="alert-danger" *ngIf="errorMessage">
-          <span class="material-symbols-rounded">warning</span> {{ errorMessage }}
-        </div>
+      <div class="login-demo">
+        <span class="chip">Demo</span>
+        <span class="text-muted demo-text">Acceso rápido: {{ credencialesDemo }}</span>
+      </div>
 
-        <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
-          <span *ngIf="!isLoading" style="display:flex; align-items:center; gap:0.5rem">
-            Iniciar Sesión <span class="material-symbols-rounded" style="font-size: 1.1rem">arrow_forward</span>
-          </span>
-          <span *ngIf="isLoading" style="display:flex; align-items:center; gap:0.5rem">
-            <span class="material-symbols-rounded" style="animation: spin 1s linear infinite">sync</span> Cargando...
-          </span>
-        </button>
-        
-        <button type="button" class="btn-secondary" (click)="volver()">
-          <span class="material-symbols-rounded" style="font-size: 1.1rem">home</span> Volver al Inicio
-        </button>
+      <button type="submit" class="btn btn-primary btn-lg" [disabled]="form.invalid || enviando">
+        <span class="material-symbols-rounded icon-sm">login</span>
+        {{ enviando ? 'Autenticando…' : 'Ingresar al panel' }}
+      </button>
 
-      </form>
-    </div>
-  </div>
+      <p class="login-volver">
+        <a (click)="irA('/postulacion')">← Volver a la postulación pública</a>
+      </p>
+    </form>
+  </main>
+
+  <footer class="main-footer">
+    <p>Sistema de Contratación y Evaluación de Servicios Externos · División de Compras</p>
+  </footer>
 </div>
-
-<style>
-  @keyframes spin { 100% { transform: rotate(360deg); } }
-</style>

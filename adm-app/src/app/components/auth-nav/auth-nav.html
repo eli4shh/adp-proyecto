@@ -1,0 +1,19 @@
+<div class="auth-nav">
+  <ng-container *ngIf="usuario; else sinSesion">
+    <span class="auth-user" title="{{ usuario.email }}">
+      <span class="material-symbols-rounded icon-sm">account_circle</span>
+      <span class="auth-user-text">{{ nombreMostrado }}</span>
+    </span>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="cerrarSesion()"
+      [disabled]="cerrando">
+      <span class="material-symbols-rounded icon-sm">logout</span>
+      {{ cerrando ? 'Cerrando…' : 'Cerrar sesión' }}
+    </button>
+  </ng-container>
+  <ng-template #sinSesion>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="irAlLogin()">
+      <span class="material-symbols-rounded icon-sm">login</span>
+      Ingresar
+    </button>
+  </ng-template>
+</div>

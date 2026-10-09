@@ -1,88 +1,88 @@
-# Sistema de Gestión y Citas - Peluquería Canina
+# 📋 Sistema Inteligente de Planificación, Contratación y Evaluación de Servicios Externos
 
-Aplicación web monolítica bajo estructura **Monorepo** para la gestión integral de reservas, control operativo de agenda y manejo de caja chica para una peluquería canina.
+Plataforma corporativa para la gestión de contrataciones públicas/privadas, recepción de postulaciones y cotizaciones de proveedores, evaluación multicriterio, ponderación de ofertas y adjudicación de contratos.
 
 ---
 
 ## 🏗️ Estructura del Proyecto
 
-Este repositorio utiliza una arquitectura de **Monorepo**:
+El repositorio contiene la aplicación frontend principal y los esquemas de base de datos relacionales:
 
 ```text
-adp-proyectos/
-├── 📁 adm-app/        # Frontend desarrollado en Angular 21
-└── 📁 adm-backend/    # Backend desarrollado en Node.js, Express y MongoDB Atlas
+admproyecto-final/
+├── adm-app/               # Aplicación web desarrollada en Angular 21 (Standalone Components)
+├── supabase_schema.sql    # Esquema relacional de base de datos PostgreSQL en Supabase (RLS, tablas y roles)
+└── README.md              # Documentación general del proyecto
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Stack Tecnológico
 
-| Capa | Tecnología / Herramientas |
-| :--- | :--- |
-| **Frontend** | Angular 21 (Standalone Components), TypeScript, HTML5, CSS3 |
-| **Seguridad Frontend** | Interceptores HTTP y Guardias de Ruta (Guards JWT) |
-| **Backend** | Node.js, Express.js |
-| **Base de Datos** | MongoDB Atlas (Mongoose ORM) |
-| **Autenticación** | JSON Web Tokens (JWT) & bcrypt.js |
-| **Almacenamiento Media** | Cloudinary API |
+### **Frontend (`adm-app`)**
+- **Framework:** Angular 21 (Componentes Standalone, Signals)
+- **Lenguaje:** TypeScript 5.9
+- **Estilos:** CSS3 / Diseño corporativo responsivo (Inter y JetBrains Mono, Google Material Symbols)
+- **Gestión de Estado y Reactividad:** RxJS y Angular Signals
+- **Integración Backend / DB:** `@supabase/supabase-js` con modo Mock fallback automático
+- **Alertas y Confirmaciones:** SweetAlert2
 
----
-
-## 👥 Roles y Funcionalidades del Sistema
-
-* 🐶 **Cliente:**
-  * Reserva de citas en línea.
-  * Selección de horarios con bloqueo temporal.
-  * Carga y subida de comprobantes de pago.
-
-* ✂️ **Trabajador (Recepción):**
-  * Panel operativo para confirmar o cancelar citas.
-  * Actualización de fichas médicas de las mascotas.
-  * Registro y control del cierre de caja chica.
-
-* 👑 **Administrador:**
-  * Dashboard con métricas clave de rendimiento.
-  * Conteo de ingresos diarios y mensuales.
-  * Ranking de razas atendidas y reporte estadístico.
-  * Gestión integral de personal y usuarios.
+### **Base de Datos & Seguridad (`supabase_schema.sql`)**
+- **Motor:** PostgreSQL (Supabase)
+- **Seguridad:** Row Level Security (RLS) para aislamiento de datos entre proveedores y administradores
+- **Autenticación:** Supabase Auth (JWT)
 
 ---
 
-## ⚙️ Configuración e Instalación Local
+## ⚙️ Instalación y Ejecución Local
 
 ### 1. Clonar el repositorio
 ```bash
-git clone [https://github.com/eli4shh/adp-proyecto.git](https://github.com/eli4shh/adp-proyecto.git)
-cd adp-proyecto
+git clone https://github.com/eli4shh/huellitas-pet-project.git
+cd admproyecto-final
 ```
 
-### 2. Configurar y levantar el Backend
-
+### 2. Configurar y levantar el Frontend
 ```bash
-# Navegar a la carpeta del backend e instalar dependencias
-cd adm-backend
+cd adm-app
 npm install
 ```
 
-> ⚠️ **Nota:** Crea un archivo `.env` dentro de la carpeta `adm-backend` basándote en el archivo `.env.example`.
+#### Variables de Entorno:
+Crea o edita el archivo `.env` dentro de la carpeta `adm-app`:
+```env
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_KEY=tu-anon-key
+FORZAR_MOCK=false
+```
+> **Nota:** Si no dispones de credenciales de Supabase de inmediato, puedes dejar `FORZAR_MOCK=true` o dejar las variables vacías. La app se ejecutará con datos simulados y completos para pruebas de interfaz.
 
 Inicia el servidor en modo desarrollo:
 ```bash
 npm start
-# Servidor corriendo en http://localhost:3000
-```
-
-### 3. Configurar y levantar el Frontend
-
-Abre una nueva terminal en la raíz del proyecto y ejecuta:
-
-```bash
-# Navegar a la carpeta del frontend e instalar dependencias
-cd adm-app
-npm install
-
-# Iniciar la aplicación
+# o
 ng serve
-# Aplicación disponible en http://localhost:4200
 ```
+La aplicación estará disponible en: [http://localhost:4200](http://localhost:4200)
+
+---
+
+## 👥 Módulos y Roles del Sistema
+
+- **Portal de Proveedores (`/postulacion`):**
+  - Registro de datos de la empresa (RUC/DNI, razón social, rubro, contacto).
+  - Carga de cotizaciones y propuestas técnicas/económicas.
+  - Validación de campos y confirmación inmediata.
+
+- **Acceso Interno (`/login`):**
+  - Autenticación segura para el equipo de administración y compras.
+  - Acceso en modo demo disponible con credenciales de prueba.
+
+- **Bandeja de Cotizaciones (`/bandeja`):**
+  - Control de solicitudes recibidas, estados de revisión y filtrado.
+  - Gestión del ciclo de vida de cada solicitud.
+
+- **Evaluación y Adjudicación (`/evaluacion`):**
+  - Matriz de evaluación multicriterio (técnica, económica, experiencia).
+  - Ponderación automatizada y cálculo de puntajes.
+  - Selección de ganador y adjudicación de contrato.

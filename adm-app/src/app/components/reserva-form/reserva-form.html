@@ -1,212 +1,139 @@
 <div class="page-container">
-  
-  <!-- HEADER CORPORATIVO BLINDADO -->
+  <!-- HEADER -->
   <header class="corp-header">
     <div class="header-left">
-      <img [src]="logoUrl" *ngIf="logoUrl" alt="Huellitas Grooming & Spa Logo" class="corp-logo">
-      <h1>Huellitas Grooming & Spa</h1>
+      <span class="corp-brand"><span class="material-symbols-rounded">contract</span></span>
+      <h1>Registro y Postulación de Proveedores</h1>
     </div>
-    <div class="header-center"></div>
-    <div class="header-right">
-      <button class="btn-login" (click)="irALogin()">
-        <i class="fas fa-user"></i>
-        <span>Login</span>
-      </button>
-    </div>
+    <nav class="header-nav">
+      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
+      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
+      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
+    </nav>
+    <app-auth-nav></app-auth-nav>
   </header>
 
   <div class="form-wrapper">
-    <form [formGroup]="reservaForm" (ngSubmit)="onSubmit()" class="reserva-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="postulacion-card">
       <div class="form-header">
-          <h1 class="form-title">RESERVA DE CITA</h1>
+        <h1 class="form-title">Registro y Postulación de Proveedores</h1>
+        <p class="text-muted">Selecciona una licitación abierta y envía tu propuesta técnica y económica.</p>
       </div>
-      
-      <!-- SECCIÓN TUTOR -->
+
+      <div *ngIf="cargando" class="estado-vacio">Cargando solicitudes…</div>
+
+      <!-- 1. Licitación -->
       <section class="form-section">
-        <h3 class="section-header">Datos del Tutor</h3>
+        <h3 class="section-header">01 · Licitación / Solicitud</h3>
+        <div class="field full">
+          <label>Solicitud abierta *</label>
+          <select formControlName="solicitud_id">
+            <option value="">— Selecciona una solicitud —</option>
+            <option *ngFor="let s of solicitudes" [value]="s.id">
+              {{ s.titulo }} · S/ {{ s.presupuesto_referencial | number:'1.0-2' }} · {{ categoriaNombre(s.categoria_id) }}
+            </option>
+          </select>
+          <small class="text-danger" *ngIf="f['solicitud_id'].invalid && f['solicitud_id'].touched">
+            Debes elegir una solicitud a la cual postular.
+          </small>
+          <small class="text-muted" *ngIf="!cargando && solicitudes.length === 0">
+            No hay solicitudes abiertas en este momento. Vuelve pronto.
+          </small>
+        </div>
+        <div class="solicitud-info" *ngIf="solicitudSeleccionada">
+          <span class="chip">{{ categoriaNombre(solicitudSeleccionada.categoria_id) }}</span>
+          <p class="desc">{{ solicitudSeleccionada.descripcion }}</p>
+          <p class="muted">
+            Presupuesto referencial:
+            <strong class="mono">S/ {{ solicitudSeleccionada.presupuesto_referencial | number:'1.2-2' }}</strong>
+            · Cierre: <strong class="mono">{{ solicitudSeleccionada.fecha_limite }}</strong>
+          </p>
+        </div>
+      </section>
+
+      <!-- 2. Proveedor -->
+      <section class="form-section">
+        <h3 class="section-header">02 · Datos del proveedor</h3>
         <div class="input-group">
           <div class="field">
-            <label>Nombre Completo*</label>
-            <input type="text" formControlName="tutorNombre" placeholder="Escribe tu nombre">
-            <small class="text-danger" *ngIf="f['tutorNombre'].invalid && (f['tutorNombre'].dirty || f['tutorNombre'].touched)">Este campo es obligatorio.</small>
+            <label>RUC *</label>
+            <input type="text" formControlName="ruc" placeholder="11 dígitos" maxlength="11">
+            <small class="text-danger" *ngIf="f['ruc'].errors?.['required'] && f['ruc'].touched">Requerido.</small>
+            <small class="text-danger" *ngIf="f['ruc'].errors?.['pattern'] && f['ruc'].touched">El RUC debe tener 11 dígitos.</small>
           </div>
           <div class="field">
-            <label>Dirección*</label>
-            <input type="text" formControlName="tutorDireccion" placeholder="Iquitos, Calle...">
-            <small class="text-danger" *ngIf="f['tutorDireccion'].invalid && (f['tutorDireccion'].dirty || f['tutorDireccion'].touched)">Este campo es obligatorio.</small>
+            <label>Razón social *</label>
+            <input type="text" formControlName="razon_social" placeholder="Ej: AquaClean S.A.C.">
+            <small class="text-danger" *ngIf="f['razon_social'].invalid && f['razon_social'].touched">Requerido.</small>
           </div>
         </div>
         <div class="input-group">
           <div class="field">
-            <label>Celular Principal*</label>
-            <input type="text" formControlName="tutorCelular" placeholder="Ingrese Número">
-            <small class="text-danger" *ngIf="f['tutorCelular'].errors?.['required'] && (f['tutorCelular'].dirty || f['tutorCelular'].touched)">Este campo es obligatorio.</small>
-            <small class="text-danger" *ngIf="f['tutorCelular'].errors?.['pattern'] && (f['tutorCelular'].dirty || f['tutorCelular'].touched)">Debe contener exactamente 9 dígitos.</small>
+            <label>Persona de contacto *</label>
+            <input type="text" formControlName="nombre_contacto" placeholder="Nombre del representante">
+            <small class="text-danger" *ngIf="f['nombre_contacto'].invalid && f['nombre_contacto'].touched">Requerido.</small>
           </div>
           <div class="field">
-            <label>2º Número (Opcional)</label>
-            <input type="text" formControlName="tutorCelular2" placeholder="Ingrese Número">
+            <label>Teléfono *</label>
+            <input type="text" formControlName="telefono" placeholder="+51 999 999 999">
+            <small class="text-danger" *ngIf="f['telefono'].invalid && f['telefono'].touched">Ingresa un teléfono válido.</small>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="field">
+            <label>Correo electrónico *</label>
+            <input type="email" formControlName="email" placeholder="empresa@correo.com">
+            <small class="text-danger" *ngIf="f['email'].invalid && f['email'].touched">Email inválido.</small>
+          </div>
+          <div class="field">
+            <label>Años de experiencia *</label>
+            <input type="number" formControlName="anios_experiencia" min="0" max="60">
+            <small class="text-danger" *ngIf="f['anios_experiencia'].invalid && f['anios_experiencia'].touched">0 – 60 años.</small>
           </div>
         </div>
       </section>
 
-      <!-- SECCIÓN AMIGO PELUDO -->
+      <!-- 3. Propuesta económica y técnica -->
       <section class="form-section">
-        <h3 class="section-header">Datos de la Mascota</h3>
+        <h3 class="section-header">03 · Propuesta económica y técnica</h3>
         <div class="input-group">
           <div class="field">
-            <label>Nombre de la Mascota*</label>
-            <input type="text" formControlName="petNombre" placeholder="Ej: Firulais">
-            <small class="text-danger" *ngIf="f['petNombre'].invalid && (f['petNombre'].dirty || f['petNombre'].touched)">Este campo es obligatorio.</small>
+            <label>Monto cotizado (S/) *</label>
+            <input type="number" formControlName="monto_cotizado" min="1" placeholder="0.00">
+            <small class="text-danger" *ngIf="f['monto_cotizado'].invalid && f['monto_cotizado'].touched">Debe ser mayor a 0.</small>
           </div>
           <div class="field">
-            <label>Raza*</label>
-            <input type="text" formControlName="petRaza" placeholder="Ej: Poodle">
-            <small class="text-danger" *ngIf="f['petRaza'].invalid && (f['petRaza'].dirty || f['petRaza'].touched)">Este campo es obligatorio.</small>
-          </div>
-        </div>
-        <div class="input-group triple">
-          <div class="field">
-            <label>Edad*</label>
-            <input type="text" formControlName="petEdad" placeholder="Ej: 2 años">
-            <small class="text-danger" *ngIf="f['petEdad'].invalid && (f['petEdad'].dirty || f['petEdad'].touched)">Este campo es obligatorio.</small>
-          </div>
-          <div class="field">
-            <label>Color*</label>
-            <input type="text" formControlName="petColor" placeholder="Ej: Blanco">
-            <small class="text-danger" *ngIf="f['petColor'].invalid && (f['petColor'].dirty || f['petColor'].touched)">Este campo es obligatorio.</small>
-          </div>
-          <div class="field">
-            <label>Sexo*</label>
-            <select formControlName="petSexo">
-              <option value="">Selecciona</option>
-              <option value="Macho">Macho</option>
-              <option value="Hembra">Hembra</option>
-            </select>
-            <small class="text-danger" *ngIf="f['petSexo'].invalid && (f['petSexo'].dirty || f['petSexo'].touched)">Debes seleccionar el sexo.</small>
+            <label>Plazo de entrega (días) *</label>
+            <input type="number" formControlName="tiempo_entrega_dias" min="1" max="365">
+            <small class="text-danger" *ngIf="f['tiempo_entrega_dias'].invalid && f['tiempo_entrega_dias'].touched">1 – 365 días.</small>
           </div>
         </div>
         <div class="field full">
-          <label>Alergias (Opcional)</label>
-          <textarea formControlName="petAlergias" placeholder="¿Tiene alergia a algún shampoo o producto?"></textarea>
+          <label>Propuesta técnica *</label>
+          <textarea formControlName="propuesta_tecnica" rows="3"
+            placeholder="Describe el alcance, personal asignado, entregables, etc."></textarea>
+          <small class="text-danger" *ngIf="f['propuesta_tecnica'].invalid && f['propuesta_tecnica'].touched">Requerido.</small>
         </div>
         <div class="field full">
-          <label>Condición Médica (Opcional)</label>
-          <textarea formControlName="petCondicionMedica" placeholder="Ej: Problemas de piel, asma, etc."></textarea>
+          <label>Documento de la propuesta (opcional)</label>
+          <input type="file" (change)="onArchivoSeleccionado($event)" accept="application/pdf,image/*" class="file-input">
+          <small class="text-muted">O pega una URL pública del documento</small>
+          <input type="text" formControlName="archivo_url" placeholder="https://drive.google.com/... o archivo adjunto">
+          <span class="adjunto-ok" *ngIf="nombreArchivo">
+            <span class="material-symbols-rounded icon-sm">check_circle</span>
+            <span class="mono">{{ nombreArchivo }}</span>
+          </span>
         </div>
       </section>
 
-      <!-- OBSERVACIONES -->
-      <section class="form-section">
-        <h3 class="section-header">Observaciones Especiales</h3>
-        <div class="field full">
-          <label>Observaciones (Opcional)</label>
-          <textarea formControlName="observaciones" placeholder="Indica si tiene pulgas, garrapatas u otro detalle para el ingreso."></textarea>
-        </div>
-      </section>
-
-      <!-- CITA -->
-      <section class="form-section appointment-box">
-        <h3 class="section-header">Selecciona Fecha y Hora</h3>
-        <div class="input-group">
-          <div class="field">
-            <label>Fecha deseada*</label>
-            <input type="date" formControlName="fecha" [min]="fechaMinima" [max]="fechaMaxima">
-            <small class="text-danger" *ngIf="f['fecha'].invalid && (f['fecha'].dirty || f['fecha'].touched)">La fecha es obligatoria.</small>
-          </div>
-          <div class="field">
-            <label>Hora disponible*</label>
-            <select formControlName="hora">
-              <option value="">Elige un horario</option>
-              <ng-container *ngFor="let h of horariosDisponibles">
-                <option [value]="h" [disabled]="isHoraBloqueada(h)">
-                  {{h}} {{ isHoraBloqueada(h) ? '- (OCUPADO)' : '' }}
-                </option>
-              </ng-container>
-            </select>
-            <small class="text-danger" *ngIf="f['hora'].invalid && (f['hora'].dirty || f['hora'].touched)">Debes seleccionar un horario.</small>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECCIÓN: COMPROBANTE DE PAGO -->
-      <section class="form-section payment-box">
-          <h3 class="section-header">Confirmación de Adelanto</h3>
-          <div class="qr-container">
-              <p>Escanea aquí para realizar el adelanto:</p>
-              <!-- Imagen del QR -->
-              <img [src]="qrUrl" alt="QR de Pago Yape/Plin" class="qr-image">
-              <p class="monto-text"><strong>Monto: S/ 10.00</strong></p>
-          </div>
-          <div class="field full">
-              <label>Subir captura de Yape/Plin (Obligatorio)*</label>
-              <input type="file" 
-                  (change)="onFileSelected($event)" 
-                  accept="image/*" 
-                  class="file-input">
-              <div class="file-status">
-              <small *ngIf="isCompressing" class="text-info">Procesando imagen...</small>
-              <small *ngIf="comprobanteBase64 && !isCompressing" class="text-success">✅ Captura lista</small>
-              <div *ngIf="imageError" class="text-danger small">{{ imageError }}</div>
-              </div>
-          </div>
-      </section>
-
-      <!-- Botón con validaciones lógicas -->
-      <button type="submit" 
-              class="btn-reservar" 
-              [disabled]="reservaForm.invalid || !comprobanteBase64 || isCompressing">
-        Confirmar Reserva
+      <button type="submit" class="btn btn-primary btn-lg" [disabled]="form.invalid || enviando">
+        <span class="material-symbols-rounded icon-sm">send</span>
+        {{ enviando ? 'Enviando…' : 'Enviar postulación' }}
       </button>
     </form>
-    
   </div>
 
-  <!-- FOOTER CORPORATIVO -->
   <footer class="main-footer">
-    <div class="footer-columns">
-      <!-- Columna 1: Marca -->
-      <div class="footer-col brand-col">
-        <img [src]="logoUrl" *ngIf="logoUrl" alt="Logo Huellitas Grooming & Spa" class="footer-logo">
-        <h3 class="footer-brand-name">Huellitas Grooming & Spa</h3>
-        <p class="footer-slogan">"De todo para sus amigos"</p>
-      </div>
-      
-      <!-- Columna 2: Sedes -->
-      <div class="footer-col">
-        <h4 class="footer-col-title">Nuestras Sedes</h4>
-        <ul class="footer-list">
-          <li><span>📍</span> <strong>Petshop</strong> - Abtao 471, Iquitos.</li>
-          <li><span>📍</span> <strong>Grooming</strong> - Nanay 735, Iquitos.</li>
-        </ul>
-      </div>
-
-      <!-- Columna 3: Contacto y Redes -->
-      <div class="footer-col">
-        <h4 class="footer-col-title">Contacto</h4>
-        <ul class="footer-list">
-          <li><span>📞</span> +51 971 822 790</li>
-          <li><span>📞</span> +51 948 305 999</li>
-        </ul>
-        <div class="footer-socials">
-          <a href="https://www.facebook.com/Huellitas.iquitos/" target="_blank" class="social-link" title="Facebook">
-            <svg class="social-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96C18.34 21.21 22 17.06 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/>
-            </svg>
-            <span>Huellitas Petshop & Grooming</span>
-          </a>
-          <a href="https://www.instagram.com/huellitas_iquitos/" target="_blank" class="social-link" title="Instagram">
-            <svg class="social-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7.8 2H16.2C19.4 2 22 4.6 22 7.8V16.2C22 19.4 19.4 22 16.2 22H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2ZM7.6 4C5.6 4 4 5.6 4 7.6V16.4C4 18.4 5.6 20 7.6 20H16.4C18.4 20 20 18.4 20 16.4V7.6C20 5.6 18.4 4 16.4 4H7.6ZM12 7.25C14.62 7.25 16.75 9.38 16.75 12C16.75 14.62 14.62 16.75 12 16.75C9.38 16.75 7.25 14.62 7.25 12C7.25 9.38 9.38 7.25 12 7.25ZM12 9.25C10.48 9.25 9.25 10.48 9.25 12C9.25 13.52 10.48 14.75 12 14.75C13.52 14.75 14.75 13.52 14.75 12C14.75 10.48 13.52 9.25 12 9.25ZM17.25 5.5C17.94 5.5 18.5 6.06 18.5 6.75C18.5 7.44 17.94 8 17.25 8C16.56 8 16 7.44 16 6.75C16 6.06 16.56 5.5 17.25 5.5Z"/>
-            </svg>
-            <span>@huellitas_iquitos</span>
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>&copy; 2026 Huellitas Grooming & Spa. Todos los derechos reservados.</p>
-    </div>
+    <p>Sistema de Contratación y Evaluación de Servicios Externos · División de Compras</p>
   </footer>
-
 </div>

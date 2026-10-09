@@ -1,61 +1,102 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
+import { from } from 'rxjs';
+import Swal from 'sweetalert2';
+import { AuthService, DATOS_DEMO } from '../../core/services/auth.service';
+import { AuthNavComponent } from '../auth-nav/auth-nav';
 
+/**
+ * Vista de inicio de sesión (ruta /login, accesible sin sesión).
+ *
+ * Formulario sobrio de acceso interno siguiendo `design.md`:
+ * fondo `#09090b`, tarjeta `#121214`, tipografía Inter, botón primario
+ * `#FFFFFF` sobre `#000000`, inputs oscuros con focus ring y feedback en
+ * SweetAlert2 con tema oscuro.
+ *
+ * Tras autenticarse redirige a la URL original (`?redirectTo=...`) cuando el
+ * guard envió aquí a un visitante, o a `/cotizaciones` si entró directo.
+ */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AuthNavComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
 export class LoginComponent {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
+  form!: FormGroup;
+  enviando = false;
+  usaMock = false;
 
-  loginForm: FormGroup = this.fb.group({
-    usuario: ['', Validators.required],
-    contrasenia: ['', Validators.required]
-  });
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private router: Router,
+    private ruta: ActivatedRoute
+  ) {
+    this.form = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+    this.usaMock = this.auth.usaMock;
+  }
 
-  errorMessage: string = '';
-  isLoading: boolean = false;
+  get f() {
+    return this.form.controls;
+  }
 
-  volver() {
-    this.router.navigate(['/reserva']);
+  get destinoTrasLogin(): string {
+    const redirigir = this.ruta.snapshot.queryParamMap.get('redirectTo');
+    return redirigir && redirigir.startsWith('/') ? redirigir : '/bandeja';
+  }
+
+  get credencialesDemo(): string {
+    return `${DATOS_DEMO.email} / ${DATOS_DEMO.password}`;
   }
 
   onSubmit() {
-    if (this.loginForm.invalid) {
+    if (this.form.invalid) {
+      Object.values(this.form.controls).forEach((c) => c.markAsTouched());
+      Swal.fire('Atención', 'Ingresa tu correo corporativo y tu contraseña.', 'warning');
       return;
     }
 
-    this.isLoading = true;
-    this.errorMessage = '';
-    
-    const { usuario, contrasenia } = this.loginForm.value;
+    const v = this.form.value;
+    this.enviando = true;
 
-    this.authService.login(usuario, contrasenia).subscribe({
-      next: (res) => {
-        this.isLoading = false;
-        this.cdr.detectChanges(); // Opcional, pero sugerido
-        // Redirigir según el rol
-        if (res.usuario.rol === 'admin') {
-          this.router.navigate(['/admin']);
-        } else {
-          this.router.navigate(['/panel']);
-        }
+    from(this.auth.iniciarSesion(v.email as string, v.password as string)).subscribe({
+      next: (usuario) => {
+        this.enviando = false;
+        const correo = usuario.email ?? '';
+        Swal.close();
+        Swal.fire({
+          icon: 'success',
+          title: '¡Bienvenido!',
+          html: `Sesión iniciada para <b>${correo}</b>.<br><span style="color:#a1a1aa">Ingresando al panel...</span>`,
+          timer: 1200,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          allowOutsideClick: false
+        }).then(() => {
+          this.router.navigateByUrl(this.destinoTrasLogin);
+        });
       },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.mensaje || 'Error al iniciar sesión. Verifica tus credenciales.';
-        console.error('Error de login', err);
-        this.cdr.detectChanges();
+      error: (err: Error) => {
+        this.enviando = false;
+        Swal.close();
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudo iniciar sesión',
+          text: err?.message ?? 'Verifica tus credenciales e inténtalo nuevamente.',
+          confirmButtonText: 'Reintentar'
+        });
       }
     });
+  }
+
+  irA(ruta: string) {
+    this.router.navigate([ruta]);
   }
 }

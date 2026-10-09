@@ -46,3 +46,7 @@ Thumbs.db
 # Local environment
 .env
 .env.local
+
+# Supabase & Environment secrets
+src/environments/environment.ts
+src/environments/environment.development.ts

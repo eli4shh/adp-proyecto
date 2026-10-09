@@ -1,198 +1,227 @@
 <div class="admin-container">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <img src="logo.png" alt="Huellitas" class="logo">
-      <h3>Admin Panel</h3>
+  <header class="corp-header">
+    <div class="header-left">
+      <span class="corp-brand"><span class="material-symbols-rounded">assessment</span></span>
+      <h1>Evaluación y Adjudicación</h1>
     </div>
-    
-    <div class="user-info" *ngIf="usuario">
-      <div class="user-avatar">
-        {{ usuario.nombre.charAt(0).toUpperCase() }}
-      </div>
-      <div class="user-details">
-        <p class="user-name">{{ usuario.nombre }}</p>
-        <span class="badge-role">{{ usuario.rol | uppercase }}</span>
-      </div>
-    </div>
-
-    <nav class="nav-menu">
-      <a href="javascript:void(0)" (click)="scrollTo('dashboard', $event)" class="nav-item">
-        <span class="material-symbols-rounded">dashboard</span>
-        Dashboard
-      </a>
-      <a href="javascript:void(0)" (click)="scrollTo('personal', $event)" class="nav-item">
-        <span class="material-symbols-rounded">group</span>
-        Gestión de Personal
-      </a>
+    <nav class="header-nav">
+      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
+      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
+      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
     </nav>
+    <app-auth-nav></app-auth-nav>
+  </header>
 
-    <div class="sidebar-footer">
-      <button class="btn-logout" (click)="logout()">
-        <span class="material-symbols-rounded">logout</span> Cerrar Sesión
-      </button>
-    </div>
-  </aside>
+  <main class="admin-main">
+    <div *ngIf="cargando" class="estado-vacio">Cargando datos…</div>
 
-  <main class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="material-symbols-rounded" style="color: var(--primary-color); font-size: 1.8rem">admin_panel_settings</span>
-        <h2>Panel de Control</h2>
+    <ng-container *ngIf="!cargando">
+      <!-- Publicar nueva licitación -->
+      <div class="admin-actions">
+        <button class="btn btn-primary" (click)="nueva.abrir()">
+          <span class="material-symbols-rounded icon-sm">add</span> Nueva Licitación
+        </button>
       </div>
-      <span class="date-today">
-        <span class="material-symbols-rounded" style="font-size: 1.2rem">today</span>
-        Estadísticas del Día
-      </span>
-    </header>
+      <app-nueva-licitacion #nueva (creada)="onLicitacionCreada($event)"></app-nueva-licitacion>
 
-    <div class="content-area">
-      <!-- DASHBOARD SECTION -->
-      <section id="dashboard" class="section">
-        <h3 class="section-title">
-          <span class="material-symbols-rounded">monitoring</span> Métricas del Día
-        </h3>
-        
-        <div class="stats-grid">
-          <div class="stat-card ingresos">
-            <div class="stat-header">
-              <h4>Generado (Hoy)</h4>
-              <div class="stat-icon"><span class="material-symbols-rounded">payments</span></div>
-            </div>
-            <p class="stat-value">S/. {{ totalIngresos }}</p>
-          </div>
-          
-          <div class="stat-card ingresos-mes">
-            <div class="stat-header">
-              <h4>Acumulado Mes</h4>
-              <div class="stat-icon"><span class="material-symbols-rounded">account_balance</span></div>
-            </div>
-            <p class="stat-value">S/. {{ totalIngresosMes }}</p>
-          </div>
+      <!-- Selector de solicitud -->
+      <div class="selector-row" *ngIf="solicitudes.length">
+        <label for="sel-solicitud">Solicitud a evaluar:</label>
+        <select id="sel-solicitud" [value]="solicitudActivaId"
+          (change)="cambiarSolicitud(sel.value)" #sel>
+          <option *ngFor="let s of solicitudes" [value]="s.id">{{ s.titulo }}</option>
+        </select>
+      </div>
 
-          <div class="stat-card confirmadas">
-            <div class="stat-header">
-              <h4>Confirmadas</h4>
-              <div class="stat-icon"><span class="material-symbols-rounded">task_alt</span></div>
-            </div>
-            <p class="stat-value">{{ totalConfirmadas }}</p>
-          </div>
-          
-          <div class="stat-card pendientes">
-            <div class="stat-header">
-              <h4>Pendientes</h4>
-              <div class="stat-icon"><span class="material-symbols-rounded">hourglass_empty</span></div>
-            </div>
-            <p class="stat-value">{{ totalPendientes }}</p>
-          </div>
-          
-          <div class="stat-card canceladas">
-            <div class="stat-header">
-              <h4>Canceladas</h4>
-              <div class="stat-icon"><span class="material-symbols-rounded">cancel</span></div>
-            </div>
-            <p class="stat-value">{{ totalCanceladas }}</p>
-          </div>
+      <!-- Pestañas -->
+      <div class="tabs">
+        <button class="tab" [class.tab-active]="pestanaActiva === 'evaluacion'"
+          (click)="cambiarPestana('evaluacion')">Comparador multicriterio</button>
+        <button class="tab" [class.tab-active]="pestanaActiva === 'contratos'"
+          (click)="cambiarPestana('contratos')">Contratos ({{ contratos.length }})</button>
+      </div>
+
+      <!-- ==================== PESTAÑA EVALUACIÓN ==================== -->
+      <div *ngIf="pestanaActiva === 'evaluacion'">
+        <div *ngIf="!solicitudActiva" class="estado-vacio">
+          No hay solicitudes registradas. Publica solicitudes en Supabase para comenzar.
         </div>
 
-        <div class="ranking-section" *ngIf="rankingRazas.length > 0">
-          <h4><span class="material-symbols-rounded" style="color: #f59e0b">stars</span> Top Razas Atendidas (Hoy)</h4>
-          <ul class="ranking-list">
-            <li *ngFor="let item of rankingRazas">
-              <span class="raza-name">
-                <span class="material-symbols-rounded" style="color: #94a3b8; font-size: 1.1rem">pets</span>
-                {{ item.raza }}
-              </span>
-              <span class="badge-count">{{ item.cantidad }} citas</span>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <ng-container *ngIf="solicitudActiva">
+          <div class="solicitud-head">
+            <span class="chip">{{ solicitudActiva.categoria ? solicitudActiva.categoria.nombre : '—' }}</span>
+            <h2>{{ solicitudActiva.titulo }}</h2>
+            <p class="muted">{{ solicitudActiva.descripcion }}</p>
+            <p class="meta">
+              Presupuesto referencial: <b class="mono">S/ {{ formatearMoneda(solicitudActiva.presupuesto_referencial) }}</b>
+              · Cierre: <span class="mono">{{ solicitudActiva.fecha_limite }}</span>
+              · Estado: <b>{{ etiquetaEstadoSolicitud(solicitudActiva.estado) }}</b>
+            </p>
+          </div>
 
-      <!-- STAFF MANAGEMENT SECTION -->
-      <section id="personal" class="section mt-5">
-        <h3 class="section-title">
-          <span class="material-symbols-rounded">manage_accounts</span> Gestión de Personal
-        </h3>
+          <div *ngIf="propuestas.length === 0" class="estado-vacio">
+            Esta solicitud aún no tiene propuestas recibidas.
+          </div>
 
-        <div class="personal-grid">
-          
-          <!-- Nuevo Trabajador -->
-          <div class="card form-card">
-            <h4><span class="material-symbols-rounded" style="color: var(--secondary-color)">person_add</span> Registrar Trabajador</h4>
-            <form [formGroup]="trabajadorForm" (ngSubmit)="registrarTrabajador()">
-              <div class="form-group">
-                <label>Nombre Completo</label>
-                <div class="input-with-icon">
-                  <span class="material-symbols-rounded">badge</span>
-                  <input type="text" formControlName="nombre" placeholder="Ej. Juan Pérez">
-                </div>
+          <ng-container *ngIf="propuestas.length > 0">
+            <!-- Tarjetas de métricas -->
+            <div class="stats-grid">
+              <div class="stat-card best">
+                <h4>Mejor puntaje</h4>
+                <p class="stat-value mono">{{ mejorPuntaje.toFixed(2) }}<small>/100</small></p>
               </div>
-              <div class="form-group">
-                <label>Usuario (Login)</label>
-                <div class="input-with-icon">
-                  <span class="material-symbols-rounded">account_circle</span>
-                  <input type="text" formControlName="usuario" placeholder="Ej. jperez">
-                </div>
+              <div class="stat-card">
+                <h4>Propuestas</h4>
+                <p class="stat-value mono">{{ propuestas.length }}</p>
               </div>
-              <div class="form-group">
-                <label>Contraseña</label>
-                <div class="input-with-icon">
-                  <span class="material-symbols-rounded">lock</span>
-                  <input type="password" formControlName="contrasenia" placeholder="Mínimo 6 caracteres">
-                </div>
+              <div class="stat-card">
+                <h4>Proveedores</h4>
+                <p class="stat-value mono">{{ totalProveedores }}</p>
               </div>
-              <button type="submit" class="btn-primary" [disabled]="trabajadorForm.invalid || registrando">
-                <span *ngIf="!registrando" style="display:flex; align-items:center; gap:0.5rem">
-                  <span class="material-symbols-rounded">save</span> Crear Cuenta
+              <div class="stat-card">
+                <h4>Presupuesto referencial</h4>
+                <p class="stat-value mono small">S/ {{ formatearMoneda(solicitudActiva.presupuesto_referencial) }}</p>
+              </div>
+            </div>
+
+            <!-- Recomendación destacada -->
+            <div class="recomendacion-card">
+              <div class="reco-head">
+                <span class="reco-badge">
+                  <span class="material-symbols-rounded icon-sm">verified</span>
+                  Recomendación automática
                 </span>
-                <span *ngIf="registrando" style="display:flex; align-items:center; gap:0.5rem">
-                  <span class="material-symbols-rounded" style="animation: spin 1s linear infinite">sync</span> Guardando...
+                <p class="reco-score mono">{{ mejorPuntaje.toFixed(2) }}<small>/100</small></p>
+              </div>
+              <h3>{{ ganadora?.propuesta?.proveedor?.razon_social }}</h3>
+              <p class="reco-text">{{ recomendacion }}</p>
+              <button class="btn btn-primary" (click)="adjudicar()"
+                [disabled]="adjudicando || !ganadora || solicitudYaAdjudicada"
+                [class.btn-disabled-success]="solicitudYaAdjudicada">
+                <span class="material-symbols-rounded icon-sm">
+                  {{ solicitudYaAdjudicada ? 'check_circle' : 'workspaces' }}
                 </span>
+                {{ adjudicando ? 'Generando contrato…' : solicitudYaAdjudicada ? 'Contrato ya generado' : 'Adjudicar y generar contrato' }}
               </button>
-            </form>
-          </div>
-
-          <!-- Lista de Trabajadores -->
-          <div class="card list-card">
-            <h4><span class="material-symbols-rounded" style="color: var(--primary-color)">recent_actors</span> Trabajadores Activos</h4>
-            <div class="table-responsive">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Usuario</th>
-                    <th>Caja Actual</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let trab of trabajadores">
-                    <td style="font-weight: 600">{{ trab.nombre }}</td>
-                    <td style="color: #64748b">{{ trab.usuario }}</td>
-                    <td><strong style="color: var(--secondary-color); font-size: 1.1rem">S/. {{ trab.cajaAcumulada }}</strong></td>
-                    <td>
-                      <button class="btn-danger-sm" (click)="eliminarTrabajador(trab._id)">
-                        <span class="material-symbols-rounded" style="font-size: 1.1rem">delete</span> Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                  <tr *ngIf="trabajadores.length === 0">
-                    <td colspan="4" class="text-center text-muted" style="padding: 2rem">
-                      <span class="material-symbols-rounded" style="font-size: 2rem; display:block; margin-bottom: 0.5rem">sentiment_dissatisfied</span>
-                      No hay trabajadores registrados.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
+
+            <!-- Ranking Top 3 -->
+            <div class="ranking-section">
+              <div class="section-title-row">
+                <h3>Ranking Top 3</h3>
+                <button class="btn btn-ghost" (click)="reevaluar()" [disabled]="evaluando || propuestas.length < 2">
+                  <span class="material-symbols-rounded icon-sm">refresh</span>
+                  {{ evaluando ? 'Evaluando…' : 'Recalcular y guardar' }}
+                </button>
+              </div>
+
+              <div class="top3-grid">
+                <div class="top-card" *ngFor="let r of resultados | slice:0:3"
+                  [class.top-ganador]="r.posicion === 1">
+                  <span class="top-puesto mono">Puesto {{ r.posicion | number:'2.0-0' }}</span>
+                  <h4>{{ r.propuesta.proveedor?.razon_social }}</h4>
+                  <p class="top-monto mono">S/ {{ formatearMoneda(r.propuesta.monto_cotizado) }}
+                    · {{ r.propuesta.tiempo_entrega_dias }} días</p>
+                  <p class="top-score mono">{{ r.puntajeFinal.toFixed(2) }}<small>/100</small></p>
+                  <div class="barras">
+                    <div class="barra">
+                      <span>Costo</span>
+                      <div class="barra-fondo"><div class="barra-llena costo" [style.width.%]="r.puntajes.costo"></div></div>
+                      <em class="mono">{{ r.puntajes.costo.toFixed(0) }}</em>
+                    </div>
+                    <div class="barra">
+                      <span>Experiencia</span>
+                      <div class="barra-fondo"><div class="barra-llena exp" [style.width.%]="r.puntajes.experiencia"></div></div>
+                      <em class="mono">{{ r.puntajes.experiencia.toFixed(0) }}</em>
+                    </div>
+                    <div class="barra">
+                      <span>Disponibilidad</span>
+                      <div class="barra-fondo"><div class="barra-llena disp" [style.width.%]="r.puntajes.disponibilidad"></div></div>
+                      <em class="mono">{{ r.puntajes.disponibilidad.toFixed(0) }}</em>
+                    </div>
+                    <div class="barra">
+                      <span>Histórico</span>
+                      <div class="barra-fondo"><div class="barra-llena hist" [style.width.%]="r.puntajes.historico"></div></div>
+                      <em class="mono">{{ r.puntajes.historico.toFixed(0) }}</em>
+                    </div>
+                  </div>
+                  <span class="chip-top3" *ngIf="r.esTop3">TOP {{ r.posicion | number:'2.0-0' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comparador completo -->
+            <div class="comparador-section">
+              <h3>Comparador de propuestas</h3>
+              <div class="tabla-wrap">
+                <table class="tabla">
+                  <thead>
+                    <tr>
+                      <th>#</th><th>Proveedor</th><th>Monto</th><th>Entrega</th>
+                      <th>Costo</th><th>Exp.</th><th>Disp.</th><th>Hist.</th>
+                      <th>Final</th><th>Top 3</th><th>Evaluado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of resultados">
+                      <td class="mono"><b>{{ r.posicion | number:'2.0-0' }}</b></td>
+                      <td>{{ r.propuesta.proveedor?.razon_social }}</td>
+                      <td class="mono">S/ {{ formatearMoneda(r.propuesta.monto_cotizado) }}</td>
+                      <td class="mono">{{ r.propuesta.tiempo_entrega_dias }} d</td>
+                      <td class="mono">{{ r.puntajes.costo.toFixed(1) }}</td>
+                      <td class="mono">{{ r.puntajes.experiencia.toFixed(1) }}</td>
+                      <td class="mono">{{ r.puntajes.disponibilidad.toFixed(1) }}</td>
+                      <td class="mono">{{ r.puntajes.historico.toFixed(1) }}</td>
+                      <td><b class="final-score mono">{{ r.puntajeFinal.toFixed(2) }}</b></td>
+                      <td><span class="chip-top3" *ngIf="r.esTop3">TOP 3</span><span class="text-muted" *ngIf="!r.esTop3">—</span></td>
+                      <td><span class="text-muted">{{ (evaluacionFecha(r.propuesta.id) | date:'short') || 'Sin guardar' }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="nota">Criterios ponderados · Costo 35% · Experiencia 25% · Disponibilidad/Tiempo 20% · Evaluación histórica 20%.</p>
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+
+      <!-- ==================== PESTAÑA CONTRATOS ==================== -->
+      <div *ngIf="pestanaActiva === 'contratos'">
+        <div class="comparador-section">
+          <h3>Contratos vigentes e historial</h3>
+          <div class="tabla-wrap" *ngIf="contratos.length">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Contrato</th><th>Proveedor</th><th>Licitación</th><th>Monto</th>
+                  <th>Inicio</th><th>Fin</th><th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of contratos">
+                  <td class="text-muted mono">{{ c.id }}</td>
+                  <td><b>{{ c.propuesta?.proveedor?.razon_social ?? '—' }}</b></td>
+                  <td>{{ c.propuesta?.solicitud?.titulo ?? '—' }}</td>
+                  <td class="mono">S/ {{ formatearMoneda(c.monto_total) }}</td>
+                  <td class="mono">{{ c.fecha_inicio }}</td>
+                  <td class="mono">{{ c.fecha_fin }}</td>
+                  <td>
+                    <span class="badge"
+                      [class.badge-vigente]="c.estado === 'vigente'"
+                      [class.badge-culminado]="c.estado === 'culminado'"
+                      [class.badge-cancelado]="c.estado === 'cancelado'">
+                      {{ etiquetaContrato[c.estado] }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
+          <div class="estado-vacio" *ngIf="!contratos.length">
+            Aún no hay contratos generados. Adjudica una propuesta desde la pestaña “Comparador multicriterio”.
+          </div>
         </div>
-      </section>
-
-    </div>
+      </div>
+    </ng-container>
   </main>
 </div>
-<style>
-  @keyframes spin { 100% { transform: rotate(360deg); } }
-</style>

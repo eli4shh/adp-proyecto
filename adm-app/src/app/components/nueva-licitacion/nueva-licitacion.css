@@ -1,0 +1,90 @@
+/* ---------- Modal "Nueva Licitación" (componente compartido) ---------- */
+.licitacion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 9, 11, 0.72);
+  backdrop-filter: blur(6px);
+  animation: fade-in-up 200ms var(--ease-out) both;
+}
+
+.licitacion-dialogo {
+  width: 100%;
+  max-width: 620px;
+  max-height: min(86vh, 640px);
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+}
+
+.licitacion-dialogo form { display: flex; flex-direction: column; }
+
+.dialogo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem 0.8rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dialogo-head h2 {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-icon-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.btn-icon-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.dialogo-body {
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.field.full { grid-column: 1 / -1; }
+
+.campo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.campo-grid .field { min-width: 0; }
+
+/* Montos y fechas en tipografía tabular (JetBrains Mono) */
+.licitacion-dialogo input.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.dialogo-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .campo-grid { grid-template-columns: 1fr; }
+  .licitacion-dialogo { max-width: 100%; }
+}
