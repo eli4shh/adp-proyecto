@@ -4,20 +4,9 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { from } from 'rxjs';
 import Swal from 'sweetalert2';
-import { AuthService, DATOS_DEMO } from '../../core/services/auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { AuthNavComponent } from '../auth-nav/auth-nav';
 
-/**
- * Vista de inicio de sesión (ruta /login, accesible sin sesión).
- *
- * Formulario sobrio de acceso interno siguiendo `design.md`:
- * fondo `#09090b`, tarjeta `#121214`, tipografía Inter, botón primario
- * `#FFFFFF` sobre `#000000`, inputs oscuros con focus ring y feedback en
- * SweetAlert2 con tema oscuro.
- *
- * Tras autenticarse redirige a la URL original (`?redirectTo=...`) cuando el
- * guard envió aquí a un visitante, o a `/cotizaciones` si entró directo.
- */
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -28,7 +17,6 @@ import { AuthNavComponent } from '../auth-nav/auth-nav';
 export class LoginComponent {
   form!: FormGroup;
   enviando = false;
-  usaMock = false;
 
   constructor(
     private fb: FormBuilder,
@@ -40,7 +28,6 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
-    this.usaMock = this.auth.usaMock;
   }
 
   get f() {
@@ -50,10 +37,6 @@ export class LoginComponent {
   get destinoTrasLogin(): string {
     const redirigir = this.ruta.snapshot.queryParamMap.get('redirectTo');
     return redirigir && redirigir.startsWith('/') ? redirigir : '/bandeja';
-  }
-
-  get credencialesDemo(): string {
-    return `${DATOS_DEMO.email} / ${DATOS_DEMO.password}`;
   }
 
   onSubmit() {

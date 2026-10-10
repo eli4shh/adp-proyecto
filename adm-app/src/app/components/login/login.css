@@ -91,24 +91,7 @@
 
 .login-card input.ng-invalid.ng-touched { border-color: var(--danger); }
 
-/* Aviso de modo demo (sin Supabase configurado) */
-.login-demo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.75rem;
-  background: var(--bg-surface-2);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-}
 
-.login-demo .demo-text {
-  font-size: 0.78rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
 
 /* Botón primario #FFFFFF sobre #000000 (tokens --accent/--accent-contrast) */
 .login-card .btn-primary {

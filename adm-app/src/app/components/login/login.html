@@ -1,5 +1,4 @@
 <div class="login-page">
-  <!-- Header corporativo (con bloque de sesión) -->
   <header class="corp-header">
     <div class="header-left">
       <span class="corp-brand"><span class="material-symbols-rounded">lock</span></span>
@@ -8,7 +7,6 @@
     <app-auth-nav></app-auth-nav>
   </header>
 
-  <!-- Tarjeta de autenticación -->
   <main class="login-main">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-card" novalidate>
       <div class="login-head">
@@ -20,7 +18,7 @@
       <div class="field">
         <label for="login-email">Correo corporativo *</label>
         <input id="login-email" type="email" formControlName="email" autocomplete="username"
-          placeholder="admin@compras.pe">
+          placeholder="correo@empresa.com">
         <small class="text-danger" *ngIf="f['email'].errors?.['required'] && f['email'].touched">
           Requerido.
         </small>
@@ -39,11 +37,6 @@
         <small class="text-danger" *ngIf="f['password'].errors?.['minlength'] && f['password'].touched">
           Mínimo 6 caracteres.
         </small>
-      </div>
-
-      <div class="login-demo">
-        <span class="chip">Demo</span>
-        <span class="text-muted demo-text">Acceso rápido: {{ credencialesDemo }}</span>
       </div>
 
       <button type="submit" class="btn btn-primary btn-lg" [disabled]="form.invalid || enviando">

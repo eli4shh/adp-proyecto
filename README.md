@@ -75,8 +75,7 @@ La aplicación estará disponible en: [http://localhost:4200](http://localhost:4
   - Validación de campos y confirmación inmediata.
 
 - **Acceso Interno (`/login`):**
-  - Autenticación segura para el equipo de administración y compras.
-  - Acceso en modo demo disponible con credenciales de prueba.
+  - Autenticación segura para el equipo de administración y compras mediante Supabase Auth.
 
 - **Bandeja de Cotizaciones (`/bandeja`):**
   - Control de solicitudes recibidas, estados de revisión y filtrado.
