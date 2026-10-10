@@ -26,9 +26,8 @@ export class AuthService {
     return this.supabaseService.getClient();
   }
 
-  /** `true` cuando no hay cliente Supabase (modo offline/mock): el login usa credenciales demo. */
   get usaMock(): boolean {
-    return this.supabaseService.usarMock;
+    return !this.supabaseService.tieneConexion;
   }
 
   /** Valor síncrono del usuario autenticado (para guards y componentes). */
