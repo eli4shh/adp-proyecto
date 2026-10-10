@@ -3,12 +3,6 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import type { User } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
 
-/**
- * Credenciales de acceso en MODO DEMO (solo cuando `SupabaseService.usarMock`
- * es `true`, es decir, sin cliente Supabase configurado o en desarrollo con
- * `forzarMock`). Permiten probar el flujo de autenticación de punta a punta
- * sin depender de un usuario creado en Supabase Auth.
- */
 export const DATOS_DEMO = Object.freeze({
   email: 'admin@compras.pe',
   password: 'admin123',
@@ -16,35 +10,8 @@ export const DATOS_DEMO = Object.freeze({
   rol: 'admin'
 });
 
-/**
- * Roles de la plataforma.
- *
- *  - `proveedor` / público: accede a `/postulacion` sin sesión interna.
- *  - `admin` / compras: accede a `/cotizaciones` y `/admin` SOLO con sesión
- *    activa de Supabase Auth (token `authenticated`), lo que además permite
- *    que sus escrituras (UPDATE de solicitudes/propuestas, INSERT de
- *    contratos) pasen las políticas RLS del schema.
- */
 export type RolUsuario = 'admin' | 'proveedor';
 
-/**
- * Capa de autenticación sobre Supabase Auth.
- *
- * Mantiene el estado reactivo del usuario con un `BehaviorSubject<User | null>`
- * para que los guards, headers y vistas se actualicen al instante al
- * iniciar/cerrar sesión.
- *
- *  - `iniciarSesion(email, password)` → `supabase.auth.signInWithPassword()`.
- *  - `cerrarSesion()` → `supabase.auth.signOut()`.
- *  - `restaurarSesion()` → `supabase.auth.getSession()` (token persistido en
- *    localStorage por el propio cliente; se invoca en el `APP_INITIALIZER`
- *    para que el primer guard evalúe la sesión ya restaurada).
- *
- * Al iniciar sesión el cliente singleton guarda el access token y TODAS las
- * peticiones posteriores de `ServiciosExternosService` viajan con
- * `Authorization: Bearer <JWT>` → PostgREST resuelve el rol `authenticated`
- * y las escrituras respetan las políticas RLS (`auth_full_access_*`).
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly supabaseService = inject(SupabaseService);

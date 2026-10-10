@@ -5,17 +5,6 @@ import { AdminComponent } from './components/admin/admin';
 import { LoginComponent } from './components/login/login';
 import { authGuard } from './core/guards/auth.guard';
 
-/**
- * Sistema Inteligente de Planificación, Contratación y Evaluación.
- *  - /postulacion   (pública)      formulario de postulación de proveedores.
- *  - /login         (pública)      acceso interno del equipo de compras.
- *  - /cotizaciones  (con sesión)   bandeja de solicitudes y propuestas.
- *  - /admin         (con sesión)   evaluación multicriterio y adjudicación.
- *
- * `/cotizaciones` y `/admin` quedan protegidos por `authGuard` (guard
- * funcional `CanActivateFn`): sin sesión activa redirigen a `/login?redirectTo=...`.
- * `/postulacion` es la vía pública de proveedores y no requiere sesión.
- */
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, data: { titulo: 'Acceso interno' } },
   {

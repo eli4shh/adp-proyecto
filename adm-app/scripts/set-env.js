@@ -29,11 +29,7 @@ if (!fs.existsSync(environmentsDir)) {
   fs.mkdirSync(environmentsDir, { recursive: true });
 }
 
-const devConfigFile = `/**
- * Archivo autogenerado por scripts/set-env.js desde .env
- * No modificar manualmente este archivo.
- */
-import type { Environment } from './environment.types';
+const devConfigFile = `import type { Environment } from './environment.types';
 
 export const environment: Environment = {
   production: false,
@@ -43,11 +39,7 @@ export const environment: Environment = {
 };
 `;
 
-const prodConfigFile = `/**
- * Archivo autogenerado por scripts/set-env.js desde .env
- * No modificar manualmente este archivo.
- */
-import type { Environment } from './environment.types';
+const prodConfigFile = `import type { Environment } from './environment.types';
 
 export const environment: Environment = {
   production: true,

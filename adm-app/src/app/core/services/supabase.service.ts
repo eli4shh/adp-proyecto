@@ -27,12 +27,10 @@ export class SupabaseService {
     }
   }
 
-  /** `true` cuando no hay cliente disponible (modo offline/mock o error al inicializar). */
   get usarMock(): boolean {
     return this.client === null;
   }
 
-  /** Devuelve el cliente Supabase, o `null` en modo mock. */
   getClient(): SupabaseClient | null {
     return this.client;
   }
