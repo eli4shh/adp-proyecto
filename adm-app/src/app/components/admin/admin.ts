@@ -680,13 +680,13 @@ export class AdminComponent implements OnInit, OnDestroy {
           </div>
           <div class="ref-box">
             <div><strong>Emisión:</strong> ${fechaHoy}</div>
-            <div><strong>Expediente:</strong> Acta #441-AHP-2025</div>
+            <div><strong>Expediente:</strong> Acta #${sol.id ? sol.id.slice(0, 6).toUpperCase() : 'ACTA'}-AHP-2025</div>
           </div>
         </div>
 
         <div class="title-banner">
           <div class="title-main">DICTAMEN TÉCNICO Y ACTA DE ADJUDICACIÓN MULTICRITERIO</div>
-          <div class="title-sub">CONVOCATORIA PÚBLICA: ${this.codigoLicitacion || 'LIC-2025-014'}</div>
+          <div class="title-sub">CONVOCATORIA PÚBLICA: ${this.codigoLicitacion || (sol.id ? `LIC-2025-${sol.id.slice(0, 4).toUpperCase()}` : 'LIC-2025')}</div>
         </div>
 
         <div class="section-title">1. Resumen de la Licitación</div>
@@ -701,7 +701,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
         <div class="section-title">2. Proveedor Seleccionado y Adjudicado</div>
         <div class="winner-card">
-          <div class="winner-name">${prov?.razon_social ?? 'TermoClima Industrial del Sur S.A.C.'}</div>
+          <div class="winner-name">${prov?.razon_social ?? 'Proveedor Adjudicado'}</div>
           <div class="grid-info">
             <div><strong>RUC:</strong> ${prov?.ruc ?? '—'}</div>
             <div><strong>Monto Adjudicado:</strong> S/ ${montoGanador} (Sin I.G.V.)</div>

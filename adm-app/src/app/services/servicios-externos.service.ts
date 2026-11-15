@@ -49,16 +49,13 @@ export class ServiciosExternosService {
   listarCategorias(): Observable<CategoriaServicio[]> {
     if (!this.categoriasCache$) {
       if (!this.supabase) {
-        this.categoriasCache$ = of(this.categoriasPorDefecto()).pipe(shareReplay(1));
+        this.categoriasCache$ = of([]).pipe(shareReplay(1));
       } else {
         this.categoriasCache$ = from(
           this.supabase.from('categorias_servicio').select('*').order('nombre')
         ).pipe(
-          map((res) => {
-            const datos = this.extraerDatos<CategoriaServicio>(res);
-            return datos.length > 0 ? datos : this.categoriasPorDefecto();
-          }),
-          catchError(() => of(this.categoriasPorDefecto())),
+          map((res) => this.extraerDatos<CategoriaServicio>(res)),
+          catchError(() => of([])),
           shareReplay(1)
         );
       }
@@ -68,14 +65,7 @@ export class ServiciosExternosService {
 
   listarSolicitudes(filtros: FiltrosSolicitud = {}): Observable<SolicitudCotizacion[]> {
     return this.obtenerSolicitudesCache().pipe(
-      map((todas) => {
-        let filtradas = todas.filter((s) => this.cumpleFiltros(s, filtros));
-        // Si se solicitan licitaciones abiertas y no hay ninguna, suministramos las abiertas por defecto
-        if (filtros.estado === 'abierta' && filtradas.length === 0) {
-          filtradas = this.solicitudesPorDefecto().filter((s) => s.estado === 'abierta');
-        }
-        return filtradas;
-      })
+      map((todas) => todas.filter((s) => this.cumpleFiltros(s, filtros)))
     );
   }
 
@@ -105,21 +95,8 @@ export class ServiciosExternosService {
 
   private obtenerSolicitudesCache(): Observable<SolicitudCotizacion[]> {
     if (!this.solicitudesCache$) {
-      const locales = this.obtenerSolicitudesDeStorage();
-      const defaults = this.solicitudesPorDefecto();
-
-      const combinarSols = (base: SolicitudCotizacion[]) => {
-        const map = new Map<string, SolicitudCotizacion>();
-        defaults.forEach((s) => map.set(s.id, s));
-        base.forEach((s) => map.set(s.id, s));
-        locales.forEach((s) => map.set(s.id, s));
-        return Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      };
-
       if (!this.supabase) {
-        this.solicitudesCache$ = of(combinarSols([])).pipe(shareReplay(1));
+        this.solicitudesCache$ = of(this.obtenerSolicitudesDeStorage()).pipe(shareReplay(1));
       } else {
         this.solicitudesCache$ = from(
           this.supabase
@@ -127,11 +104,8 @@ export class ServiciosExternosService {
             .select('*, categoria:categorias_servicio(*)')
             .order('created_at', { ascending: false })
         ).pipe(
-          map((res) => {
-            const datos = this.extraerDatos<SolicitudCotizacion>(res);
-            return combinarSols(datos);
-          }),
-          catchError(() => of(combinarSols([]))),
+          map((res) => this.extraerDatos<SolicitudCotizacion>(res)),
+          catchError(() => of(this.obtenerSolicitudesDeStorage())),
           shareReplay(1)
         );
       }
@@ -239,35 +213,26 @@ export class ServiciosExternosService {
   }
 
   listarPropuestas(solicitudId?: string): Observable<PropuestaCotizacion[]> {
-    const locales = this.obtenerPropuestasDeStorage(solicitudId);
-
     if (!this.supabase) {
-      return of(this.combinarPropuestas(locales, this.propuestasPorDefecto(solicitudId)));
+      return of(this.obtenerPropuestasDeStorage(solicitudId));
     }
 
     let query = this.supabase.from('propuestas_cotizacion').select('*, proveedor:proveedores(*)');
     if (solicitudId) query = query.eq('solicitud_id', solicitudId);
 
     return from(query.order('created_at', { ascending: false })).pipe(
-      map((res) => {
-        const datos = this.extraerDatos<PropuestaCotizacion>(res);
-        const base = datos && datos.length > 0 ? datos : this.propuestasPorDefecto(solicitudId);
-        return this.combinarPropuestas(locales, base);
-      }),
-      catchError(() => of(this.combinarPropuestas(locales, this.propuestasPorDefecto(solicitudId))))
+      map((res) => this.extraerDatos<PropuestaCotizacion>(res)),
+      catchError(() => of(this.obtenerPropuestasDeStorage(solicitudId)))
     );
   }
 
   listarProveedores(): Observable<Proveedor[]> {
     if (!this.supabase) {
-      return of(this.proveedoresPorDefecto());
+      return of([]);
     }
     return from(this.supabase.from('proveedores').select('*').order('razon_social')).pipe(
-      map((res) => {
-        const datos = this.extraerDatos<Proveedor>(res);
-        return datos.length > 0 ? datos : this.proveedoresPorDefecto();
-      }),
-      catchError(() => of(this.proveedoresPorDefecto()))
+      map((res) => this.extraerDatos<Proveedor>(res)),
+      catchError(() => of([]))
     );
   }
 
@@ -308,7 +273,7 @@ export class ServiciosExternosService {
   private refrescarCatalogoSolicitudesAbiertas(): void {
     this.listarSolicitudes({ estado: 'abierta' }).subscribe({
       next: (sols) => this.solicitudesAbiertasSubject.next(sols),
-      error: () => this.solicitudesAbiertasSubject.next(this.solicitudesPorDefecto().filter(s => s.estado === 'abierta'))
+      error: () => this.solicitudesAbiertasSubject.next([])
     });
   }
 
@@ -577,425 +542,5 @@ export class ServiciosExternosService {
   private extraerDatos<T>(res: RespuestaSupabase): T[] {
     if (res.error) throw res.error;
     return (res.data ?? []) as T[];
-  }
-
-  // ---------------------------------------------------------------------------
-  // DATOS POR DEFECTO / SEED DE RESPALDO (FIDELIDAD AL PLIEGO Y CASOS DE USO)
-  // ---------------------------------------------------------------------------
-
-  private categoriasPorDefecto(): CategoriaServicio[] {
-    return [
-      { id: 'c0000000-0000-4000-8000-000000000001', nombre: 'Mantenimiento de Piscinas', descripcion: 'Limpieza, tratamiento químico del agua y mantenimiento general de piscinas.', icono: 'pool', activo: true, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'c0000000-0000-4000-8000-000000000002', nombre: 'Seguridad y Vigilancia', descripcion: 'Seguridad privada, vigilancia nocturna y control de accesos.', icono: 'security', activo: true, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'c0000000-0000-4000-8000-000000000003', nombre: 'Jardinería y Paisajismo', descripcion: 'Diseño, mantenimiento y paisajismo de áreas verdes.', icono: 'park', activo: true, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'c0000000-0000-4000-8000-000000000004', nombre: 'Catering y Eventos', descripcion: 'Banquetería, alimentación y eventos corporativos.', icono: 'celebration', activo: true, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'c0000000-0000-4000-8000-000000000005', nombre: 'Mantenimiento Climatización/HVAC', descripcion: 'Instalación y mantenimiento preventivo de aire acondicionado y climatización.', icono: 'ac_unit', activo: true, created_at: '2026-09-01T10:00:00Z' }
-    ];
-  }
-
-  private solicitudesPorDefecto(): SolicitudCotizacion[] {
-    return [
-      {
-        id: 'a0000000-0000-4000-8000-000000000014',
-        titulo: 'LIC-2025-014: Mantenimiento Integral de Sistemas de Climatización y Chiller Central',
-        categoria_id: 'c0000000-0000-4000-8000-000000000005',
-        descripcion: 'Mantenimiento Preventivo de Climatización Centralizada · Torres A, B y Centro de Convenciones.',
-        presupuesto_referencial: 48000,
-        fecha_limite: '2026-12-15',
-        estado: 'abierta',
-        created_at: new Date().toISOString(),
-        categoria: {
-          id: 'c0000000-0000-4000-8000-000000000005',
-          nombre: 'Mantenimiento Climatización/HVAC',
-          descripcion: 'Instalación y mantenimiento preventivo de aire acondicionado y climatización.',
-          icono: 'ac_unit',
-          activo: true,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'a0000000-0000-4000-8000-000000000002',
-        titulo: 'Servicio de seguridad y vigilancia nocturna',
-        categoria_id: 'c0000000-0000-4000-8000-000000000002',
-        descripcion: 'Seguridad privada para perímetro y vestíbulos, turnos de 8 horas, por un plazo de 6 meses.',
-        presupuesto_referencial: 180000,
-        fecha_limite: '2026-12-01',
-        estado: 'cerrada',
-        created_at: '2026-09-10T10:00:00Z',
-        categoria: {
-          id: 'c0000000-0000-4000-8000-000000000002',
-          nombre: 'Seguridad y Vigilancia',
-          descripcion: 'Seguridad privada, vigilancia nocturna y control de accesos.',
-          icono: 'security',
-          activo: true,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'a0000000-0000-4000-8000-000000000003',
-        titulo: 'Catering para evento corporativo anual (300 invitados)',
-        categoria_id: 'c0000000-0000-4000-8000-000000000004',
-        descripcion: 'Banquetería completa: entradas, plato de fondo, postres y bebidas para 300 invitados.',
-        presupuesto_referencial: 60000,
-        fecha_limite: '2026-11-30',
-        estado: 'en_evaluacion',
-        created_at: '2026-09-12T10:00:00Z',
-        categoria: {
-          id: 'c0000000-0000-4000-8000-000000000004',
-          nombre: 'Catering y Eventos',
-          descripcion: 'Banquetería, alimentación y eventos corporativos.',
-          icono: 'celebration',
-          activo: true,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'a0000000-0000-4000-8000-000000000001',
-        titulo: 'Mantenimiento integral de piscinas del resort',
-        categoria_id: 'c0000000-0000-4000-8000-000000000001',
-        descripcion: 'Contrato trimestral de mantenimiento preventivo y correctivo para las 3 piscinas, incluido tratamiento químico semanal.',
-        presupuesto_referencial: 45000,
-        fecha_limite: '2026-10-01',
-        estado: 'cerrada',
-        created_at: '2026-09-08T10:00:00Z',
-        categoria: {
-          id: 'c0000000-0000-4000-8000-000000000001',
-          nombre: 'Mantenimiento de Piscinas',
-          descripcion: 'Limpieza, tratamiento químico del agua y mantenimiento general de piscinas.',
-          icono: 'pool',
-          activo: true,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      }
-    ];
-  }
-
-  private proveedoresPorDefecto(): Proveedor[] {
-    return [
-      { id: 'b0000000-0000-4000-8000-000000000002', ruc: '20234567890', razon_social: 'VigilPro Perú S.R.L.', nombre_contacto: 'Rosa Quispe', telefono: '+51 999 222 333', email: 'ventas@vigilpro.pe', anios_experiencia: 6, calificacion_historica: 4.2, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'b0000000-0000-4000-8000-000000000011', ruc: '20549281943', razon_social: 'TermoClima Industrial del Sur S.A.C.', nombre_contacto: 'Ing. Carlos Mendoza Alarcón', telefono: '+51 984 321 654', email: 'licitaciones@termoclima.pe', anios_experiencia: 8, calificacion_historica: 4.8, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'b0000000-0000-4000-8000-000000000012', ruc: '20601934812', razon_social: 'ClimaPro Soluciones Andinas', nombre_contacto: 'Ing. Fernando Ramos', telefono: '+51 954 112 334', email: 'ventas@climapro.pe', anios_experiencia: 7, calificacion_historica: 4.5, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'b0000000-0000-4000-8000-000000000013', ruc: '20114832965', razon_social: 'Servicios Frío HVAC Perú S.A.', nombre_contacto: 'Ing. Roberto Silva', telefono: '+51 981 776 543', email: 'contacto@frioperu.com', anios_experiencia: 6, calificacion_historica: 4.1, created_at: '2026-09-01T10:00:00Z' },
-      { id: 'b0000000-0000-4000-8000-000000000014', ruc: '20401940173', razon_social: 'Refrigeración Comercial Lima EIRL', nombre_contacto: 'Sr. Javier Morales', telefono: '+51 977 443 219', email: 'jmorales@refcomercial.pe', anios_experiencia: 3, calificacion_historica: 3.8, created_at: '2026-09-01T10:00:00Z' }
-    ];
-  }
-
-  private propuestasPorDefecto(solicitudId?: string): PropuestaCotizacion[] {
-    const todas: PropuestaCotizacion[] = [
-      {
-        id: 'e0000000-0000-4000-8000-000000000011',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000014',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000011',
-        monto_cotizado: 42500,
-        tiempo_entrega_dias: 15,
-        propuesta_tecnica: 'Plan de mantenimiento preventivo y correctivo con repuestos originales y técnicos homologados.',
-        archivo_url: 'Expediente_Termoclima_HVAC.pdf',
-        estado: 'recibida',
-        created_at: new Date().toISOString(),
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000011',
-          ruc: '20549281943',
-          razon_social: 'TermoClima Industrial del Sur S.A.C.',
-          nombre_contacto: 'Ing. Carlos Mendoza Alarcón',
-          telefono: '+51 984 321 654',
-          email: 'licitaciones@termoclima.pe',
-          anios_experiencia: 8,
-          calificacion_historica: 4.8,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000012',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000014',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000012',
-        monto_cotizado: 44900,
-        tiempo_entrega_dias: 12,
-        propuesta_tecnica: 'Mantenimiento integral de chillers y unidades manejadoras de aire con protocolo rápido.',
-        archivo_url: 'Expediente_ClimaPro.pdf',
-        estado: 'recibida',
-        created_at: new Date().toISOString(),
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000012',
-          ruc: '20601934812',
-          razon_social: 'ClimaPro Soluciones Andinas',
-          nombre_contacto: 'Ing. Fernando Ramos',
-          telefono: '+51 954 112 334',
-          email: 'ventas@climapro.pe',
-          anios_experiencia: 7,
-          calificacion_historica: 4.5,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000013',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000014',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000013',
-        monto_cotizado: 41000,
-        tiempo_entrega_dias: 25,
-        propuesta_tecnica: 'Servicio técnico especializado en chillers industriales con insumos importados.',
-        archivo_url: 'Expediente_Servicios_Frio.pdf',
-        estado: 'recibida',
-        created_at: new Date().toISOString(),
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000013',
-          ruc: '20114832965',
-          razon_social: 'Servicios Frío HVAC Perú S.A.',
-          nombre_contacto: 'Ing. Roberto Silva',
-          telefono: '+51 981 776 543',
-          email: 'contacto@frioperu.com',
-          anios_experiencia: 6,
-          calificacion_historica: 4.1,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000014',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000014',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000014',
-        monto_cotizado: 47200,
-        tiempo_entrega_dias: 20,
-        propuesta_tecnica: 'Mantenimiento correctivo y preventivo programado.',
-        archivo_url: 'Expediente_Refrigeracion_Lima.pdf',
-        estado: 'recibida',
-        created_at: new Date().toISOString(),
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000014',
-          ruc: '20401940173',
-          razon_social: 'Refrigeración Comercial Lima EIRL',
-          nombre_contacto: 'Sr. Javier Morales',
-          telefono: '+51 977 443 219',
-          email: 'jmorales@refcomercial.pe',
-          anios_experiencia: 3,
-          calificacion_historica: 3.8,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000004',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000003',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000004',
-        monto_cotizado: 48000,
-        tiempo_entrega_dias: 12,
-        propuesta_tecnica: 'Menú ejecutivo premium de 4 tiempos, chef residente y montaje con floristería.',
-        archivo_url: 'Expediente_Sabor_Servicio.pdf',
-        estado: 'recibida',
-        created_at: '2026-09-15T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000004',
-          ruc: '20456789012',
-          razon_social: 'Sabor & Servicio Catering S.A.C.',
-          nombre_contacto: 'María Fernanda Torres',
-          telefono: '+51 999 444 555',
-          email: 'eventos@saboryservicio.pe',
-          anios_experiencia: 10,
-          calificacion_historica: 4.8,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000005',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000003',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000007',
-        monto_cotizado: 39500,
-        tiempo_entrega_dias: 18,
-        propuesta_tecnica: 'Buffet de 3 estaciones, personal de servicio incluido y alquiler de mobiliario.',
-        archivo_url: 'Expediente_Catering_Del_Pais.pdf',
-        estado: 'recibida',
-        created_at: '2026-09-16T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000007',
-          ruc: '20789012345',
-          razon_social: 'Catering del País S.R.L.',
-          nombre_contacto: 'Diego Salas',
-          telefono: '+51 999 777 888',
-          email: 'cotiza@cateringdelpais.pe',
-          anios_experiencia: 6,
-          calificacion_historica: 4.1,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000006',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000003',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000008',
-        monto_cotizado: 35000,
-        tiempo_entrega_dias: 25,
-        propuesta_tecnica: 'Propuesta económica con menú estándar, montaje sencillo y servicio autoservicio.',
-        archivo_url: 'Expediente_Grupo_Eventos.pdf',
-        estado: 'recibida',
-        created_at: '2026-09-17T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000008',
-          ruc: '20890123456',
-          razon_social: 'Grupo Eventos Iquitos S.A.C.',
-          nombre_contacto: 'Adriana Flores',
-          telefono: '+51 999 888 999',
-          email: 'contacto@grupoeventosiq.pe',
-          anios_experiencia: 3,
-          calificacion_historica: 3.7,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      // ── Propuestas para Licitación de Piscinas (Adjudicada) ──
-      {
-        id: 'e0000000-0000-4000-8000-000000000001',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000001',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000001',
-        monto_cotizado: 42000,
-        tiempo_entrega_dias: 14,
-        propuesta_tecnica: 'Mantenimiento integral de 3 piscinas principales y recirculación automatizada.',
-        archivo_url: 'Expediente_AquaClean.pdf',
-        estado: 'seleccionada',
-        created_at: '2026-09-10T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000001',
-          ruc: '20123456789',
-          razon_social: 'AquaClean Piscinas S.A.C.',
-          nombre_contacto: 'Carlos Mendoza',
-          telefono: '+51 999 111 222',
-          email: 'contacto@aquaclean.pe',
-          anios_experiencia: 8,
-          calificacion_historica: 4.6,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      {
-        id: 'e0000000-0000-4000-8000-000000000002',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000001',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000006',
-        monto_cotizado: 44500,
-        tiempo_entrega_dias: 18,
-        propuesta_tecnica: 'Servicio técnico especializado y control de calidad químico semanal.',
-        archivo_url: 'Expediente_AquaTotal.pdf',
-        estado: 'rechazada',
-        created_at: '2026-09-11T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000006',
-          ruc: '20678901234',
-          razon_social: 'AquaTotal Pool Service S.A.C.',
-          nombre_contacto: 'Patricia Núñez',
-          telefono: '+51 999 666 777',
-          email: 'operaciones@aquatotal.pe',
-          anios_experiencia: 5,
-          calificacion_historica: 3.9,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      // ── Propuestas para Licitación de Seguridad y Vigilancia (Adjudicada) ──
-      {
-        id: 'e0000000-0000-4000-8000-000000000003',
-        solicitud_id: 'a0000000-0000-4000-8000-000000000002',
-        proveedor_id: 'b0000000-0000-4000-8000-000000000002',
-        monto_cotizado: 120000,
-        tiempo_entrega_dias: 15,
-        propuesta_tecnica: 'Esquema con 4 agentes por turno, supervisión en sitio y centro de control 24/7.',
-        archivo_url: 'Expediente_VigilPro_Seguridad.pdf',
-        estado: 'seleccionada',
-        created_at: '2026-09-12T10:00:00Z',
-        proveedor: {
-          id: 'b0000000-0000-4000-8000-000000000002',
-          ruc: '20234567890',
-          razon_social: 'VigilPro Perú S.R.L.',
-          nombre_contacto: 'Rosa Quispe',
-          telefono: '+51 999 222 333',
-          email: 'ventas@vigilpro.pe',
-          anios_experiencia: 6,
-          calificacion_historica: 4.2,
-          created_at: '2026-09-01T10:00:00Z'
-        }
-      },
-      // ── Propuestas para Licitación "Barredor" (Supabase / Pruebas) ──
-      {
-        id: 'f0000000-0000-4000-8000-000000000001',
-        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
-        proveedor_id: 'bd3cbc0d-ad10-4e72-aede-2698c5c34eb3',
-        monto_cotizado: 3200,
-        tiempo_entrega_dias: 15,
-        propuesta_tecnica: 'Servicio integral de barrido de áreas comunes, calzadas y estacionamientos.',
-        archivo_url: null,
-        estado: 'recibida',
-        created_at: '2026-11-15T02:30:58Z',
-        proveedor: {
-          id: 'bd3cbc0d-ad10-4e72-aede-2698c5c34eb3',
-          ruc: '12345678910',
-          razon_social: 'jdbckjbvkjb vkr',
-          nombre_contacto: 'ing. mirella',
-          telefono: '123456789',
-          email: 'mire@gmail.com',
-          anios_experiencia: 3,
-          calificacion_historica: 4.3,
-          created_at: '2026-11-15T02:30:58Z'
-        }
-      },
-      {
-        id: 'f0000000-0000-4000-8000-000000000002',
-        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
-        proveedor_id: 'd358dacc-0ecc-48fa-82cc-0672c919c5e5',
-        monto_cotizado: 2900,
-        tiempo_entrega_dias: 10,
-        propuesta_tecnica: 'Operatividad y mantenimiento de barredoras mecanizadas y limpieza profunda exterior.',
-        archivo_url: null,
-        estado: 'recibida',
-        created_at: '2026-11-15T02:40:00Z',
-        proveedor: {
-          id: 'd358dacc-0ecc-48fa-82cc-0672c919c5e5',
-          ruc: '11111111114',
-          razon_social: 'hola hola',
-          nombre_contacto: 'Elias Rios',
-          telefono: '987654321',
-          email: 'elias@gmail.com',
-          anios_experiencia: 5,
-          calificacion_historica: 4.8,
-          created_at: '2026-11-15T02:40:00Z'
-        }
-      },
-      {
-        id: 'f0000000-0000-4000-8000-000000000003',
-        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
-        proveedor_id: '32332732-010a-4007-afc3-4a862c7a7b88',
-        monto_cotizado: 2000,
-        tiempo_entrega_dias: 20,
-        propuesta_tecnica: 'Servicio de barredor industrial y limpieza mecánica.',
-        archivo_url: null,
-        estado: 'recibida',
-        created_at: '2026-11-15T02:10:00Z',
-        proveedor: {
-          id: '32332732-010a-4007-afc3-4a862c7a7b88',
-          ruc: '11111111111',
-          razon_social: 'hola prueba',
-          nombre_contacto: 'prueba',
-          telefono: '987654321',
-          email: 'prueba@gmail.com',
-          anios_experiencia: 8,
-          calificacion_historica: 5.0,
-          created_at: '2026-11-15T02:10:00Z'
-        }
-      },
-      {
-        id: 'f0000000-0000-4000-8000-000000000004',
-        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
-        proveedor_id: 'e8def59a-6f6b-4c4a-b086-ca05b760edeb',
-        monto_cotizado: 2000,
-        tiempo_entrega_dias: 20,
-        propuesta_tecnica: 'Servicio técnico de barredor con cronograma flexible.',
-        archivo_url: null,
-        estado: 'recibida',
-        created_at: '2026-11-15T02:20:00Z',
-        proveedor: {
-          id: 'e8def59a-6f6b-4c4a-b086-ca05b760edeb',
-          ruc: '12333333333',
-          razon_social: 'prueba 2',
-          nombre_contacto: 'eefefef',
-          telefono: '999999999',
-          email: 'prueba2@gmail.com',
-          anios_experiencia: 2,
-          calificacion_historica: 4.0,
-          created_at: '2026-11-15T02:20:00Z'
-        }
-      }
-    ];
-
-    if (!solicitudId) return todas;
-    return todas.filter((p) => p.solicitud_id === solicitudId);
   }
 }

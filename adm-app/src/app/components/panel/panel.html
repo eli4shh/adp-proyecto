@@ -419,13 +419,13 @@
           </div>
 
           <!-- ── BLOQUE ADJUDICADO / CERRADO (SIN BOTONES INERTES) ── -->
-          <div class="bq-winner-footer" *ngIf="sol.estado === 'cerrada'">
+          <div class="bq-winner-footer" *ngIf="sol.estado === 'cerrada' && proveedorGanador(sol)">
             <div class="bq-winner-info">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
               <span class="bq-winner-label">Proveedor adjudicado:</span>
-              <strong class="bq-winner-name">{{ proveedorGanador(sol)?.proveedor?.razon_social ?? 'Proveedor Adjudicado' }}</strong>
+              <strong class="bq-winner-name">{{ proveedorGanador(sol)?.proveedor?.razon_social || 'Proveedor Adjudicado' }}</strong>
               <span class="bq-badge-adjudicado">Adjudicado</span>
             </div>
             <div class="bq-winner-actions">
@@ -434,7 +434,7 @@
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
                 </svg>
-                <span>Contrato Vigente (Acta #441)</span>
+                <span>Contrato Vigente (Acta #{{ sol.id ? sol.id.slice(-4).toUpperCase() : 'ACTA' }})</span>
               </a>
             </div>
           </div>
