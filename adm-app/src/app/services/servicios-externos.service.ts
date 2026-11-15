@@ -620,7 +620,7 @@ export class ServiciosExternosService {
         descripcion: 'Seguridad privada para perímetro y vestíbulos, turnos de 8 horas, por un plazo de 6 meses.',
         presupuesto_referencial: 180000,
         fecha_limite: '2026-12-01',
-        estado: 'abierta',
+        estado: 'cerrada',
         created_at: '2026-09-10T10:00:00Z',
         categoria: {
           id: 'c0000000-0000-4000-8000-000000000002',
@@ -672,6 +672,7 @@ export class ServiciosExternosService {
 
   private proveedoresPorDefecto(): Proveedor[] {
     return [
+      { id: 'b0000000-0000-4000-8000-000000000002', ruc: '20234567890', razon_social: 'VigilPro Perú S.R.L.', nombre_contacto: 'Rosa Quispe', telefono: '+51 999 222 333', email: 'ventas@vigilpro.pe', anios_experiencia: 6, calificacion_historica: 4.2, created_at: '2026-09-01T10:00:00Z' },
       { id: 'b0000000-0000-4000-8000-000000000011', ruc: '20549281943', razon_social: 'TermoClima Industrial del Sur S.A.C.', nombre_contacto: 'Ing. Carlos Mendoza Alarcón', telefono: '+51 984 321 654', email: 'licitaciones@termoclima.pe', anios_experiencia: 8, calificacion_historica: 4.8, created_at: '2026-09-01T10:00:00Z' },
       { id: 'b0000000-0000-4000-8000-000000000012', ruc: '20601934812', razon_social: 'ClimaPro Soluciones Andinas', nombre_contacto: 'Ing. Fernando Ramos', telefono: '+51 954 112 334', email: 'ventas@climapro.pe', anios_experiencia: 7, calificacion_historica: 4.5, created_at: '2026-09-01T10:00:00Z' },
       { id: 'b0000000-0000-4000-8000-000000000013', ruc: '20114832965', razon_social: 'Servicios Frío HVAC Perú S.A.', nombre_contacto: 'Ing. Roberto Silva', telefono: '+51 981 776 543', email: 'contacto@frioperu.com', anios_experiencia: 6, calificacion_historica: 4.1, created_at: '2026-09-01T10:00:00Z' },
@@ -877,6 +878,29 @@ export class ServiciosExternosService {
           email: 'operaciones@aquatotal.pe',
           anios_experiencia: 5,
           calificacion_historica: 3.9,
+          created_at: '2026-09-01T10:00:00Z'
+        }
+      },
+      // ── Propuestas para Licitación de Seguridad y Vigilancia (Adjudicada) ──
+      {
+        id: 'e0000000-0000-4000-8000-000000000003',
+        solicitud_id: 'a0000000-0000-4000-8000-000000000002',
+        proveedor_id: 'b0000000-0000-4000-8000-000000000002',
+        monto_cotizado: 120000,
+        tiempo_entrega_dias: 15,
+        propuesta_tecnica: 'Esquema con 4 agentes por turno, supervisión en sitio y centro de control 24/7.',
+        archivo_url: 'Expediente_VigilPro_Seguridad.pdf',
+        estado: 'seleccionada',
+        created_at: '2026-09-12T10:00:00Z',
+        proveedor: {
+          id: 'b0000000-0000-4000-8000-000000000002',
+          ruc: '20234567890',
+          razon_social: 'VigilPro Perú S.R.L.',
+          nombre_contacto: 'Rosa Quispe',
+          telefono: '+51 999 222 333',
+          email: 'ventas@vigilpro.pe',
+          anios_experiencia: 6,
+          calificacion_historica: 4.2,
           created_at: '2026-09-01T10:00:00Z'
         }
       },

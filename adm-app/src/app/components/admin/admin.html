@@ -137,7 +137,7 @@
           <div class="ea-toolbar-card__left">
             <span class="ea-toolbar-label">Convocatoria:</span>
             <select class="ea-select" [value]="solicitudActivaId" (change)="cambiarSolicitud(sel.value)" #sel>
-              <option *ngFor="let s of solicitudes" [value]="s.id">
+              <option *ngFor="let s of solicitudes" [value]="s.id" [selected]="s.id === solicitudActivaId">
                 {{ s.titulo.startsWith('LIC-') ? s.titulo : ('LIC-2025-' + (s.id | slice:0:3 | uppercase) + ': ' + s.titulo) }} ({{ etiquetaEstadoSolicitud(s.estado) }})
               </option>
             </select>

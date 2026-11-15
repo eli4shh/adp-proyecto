@@ -159,20 +159,46 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   private cargarDatos() {
-    // Carga paralela de catálogo y solicitudes (una sola petición gracias a la caché).
+    // Carga paralela de catálogo, solicitudes y propuestas para renderizado síncrono
     this.suscripciones.push(
       forkJoin({
         categorias: this.servicios.listarCategorias(),
-        solicitudes: this.servicios.listarSolicitudes()
+        solicitudes: this.servicios.listarSolicitudes(),
+        propuestas: this.servicios.listarPropuestas()
       }).subscribe({
         next: (datos) => {
           this.categorias = datos.categorias;
           this.solicitudes = datos.solicitudes;
+
+          // Agrupar propuestas por solicitud_id de inmediato
+          const mapaProps = new Map<string, PropuestaCotizacion[]>();
+          datos.propuestas.forEach((p) => {
+            const arr = mapaProps.get(p.solicitud_id) ?? [];
+            arr.push(p);
+            mapaProps.set(p.solicitud_id, arr);
+          });
+          this.propuestasPorSolicitud = mapaProps;
+
+          // Precomputar rankings
+          mapaProps.forEach((props, solId) => {
+            if (props.length > 0) {
+              try {
+                const ranking = this.evaluacionService.evaluarPropuestas(props);
+                this.rankingPorSolicitud.set(solId, ranking);
+              } catch (e) {
+                console.warn('Evaluación preliminar de propuestas:', e);
+              }
+            }
+          });
+
           this.cargando = false;
-          datos.solicitudes.forEach((s) => this.cargarPropuestas(s.id));
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.cargando = false;
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }
       })
     );
@@ -192,6 +218,8 @@ export class PanelComponent implements OnInit, OnDestroy {
             console.warn('Evaluación preliminar de propuestas:', e);
           }
         }
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       })
     );
   }
