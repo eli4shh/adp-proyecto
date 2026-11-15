@@ -10,6 +10,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <script>
+    (function () {
+      function removerBadgeNetlify() {
+        var el = document.getElementById('nl-badge-frame') ||
+                 document.querySelector('iframe[id*="nl-badge"]') ||
+                 document.querySelector('iframe[title*="Netlify" i]') ||
+                 document.querySelector('iframe[src*="netlify"]') ||
+                 document.querySelector('netlify-drawer');
+        if (el) {
+          try {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.remove();
+          } catch (e) {}
+        }
+      }
+      removerBadgeNetlify();
+      if (typeof MutationObserver !== 'undefined' && document.documentElement) {
+        var obs = new MutationObserver(function () {
+          removerBadgeNetlify();
+        });
+        obs.observe(document.documentElement, { childList: true, subtree: true });
+      }
+      window.addEventListener('DOMContentLoaded', removerBadgeNetlify);
+      window.addEventListener('load', removerBadgeNetlify);
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>
