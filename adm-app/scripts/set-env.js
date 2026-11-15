@@ -8,8 +8,8 @@ if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
 }
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://igyexttoqaejxopxehue.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_cn8p8folgRFlYcTqMKABVA_VFAZOs_z';
 
 const envFileContent = `export const env = {
   SUPABASE_URL: '${supabaseUrl}',

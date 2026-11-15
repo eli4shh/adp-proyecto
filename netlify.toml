@@ -1,0 +1,9 @@
+[build]
+  base = "adm-app"
+  publish = "dist/adm-app/browser"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
