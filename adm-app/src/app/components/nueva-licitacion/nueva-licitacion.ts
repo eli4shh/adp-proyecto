@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import Swal from 'sweetalert2';
@@ -30,7 +30,11 @@ export class NuevaLicitacionComponent implements OnInit {
   categorias: CategoriaServicio[] = [];
   form!: FormGroup;
 
-  constructor(private fb: FormBuilder, private servicios: ServiciosExternosService) {
+  constructor(
+    private fb: FormBuilder,
+    private servicios: ServiciosExternosService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.form = this.fb.group({
       titulo: ['', Validators.required],
       categoria_id: ['', Validators.required],
@@ -41,7 +45,10 @@ export class NuevaLicitacionComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.servicios.listarCategorias().subscribe((cats) => (this.categorias = cats));
+    this.servicios.listarCategorias().subscribe((cats) => {
+      this.categorias = cats;
+      this.cdr.markForCheck();
+    });
   }
 
   get f() {
@@ -50,10 +57,23 @@ export class NuevaLicitacionComponent implements OnInit {
 
   abrir() {
     this.abierto = true;
+    this.enviando = false;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   cerrar() {
-    if (!this.enviando) this.abierto = false;
+    this.abierto = false;
+    this.enviando = false;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.abierto) {
+      this.cerrar();
+    }
   }
 
   publicar() {
@@ -65,6 +85,8 @@ export class NuevaLicitacionComponent implements OnInit {
 
     const v = this.form.value;
     this.enviando = true;
+    this.cdr.markForCheck();
+
     this.servicios
       .crearSolicitud({
         titulo: (v.titulo as string).trim(),
@@ -84,6 +106,9 @@ export class NuevaLicitacionComponent implements OnInit {
             fecha_limite: '',
             descripcion: ''
           });
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+
           Swal.fire({
             icon: 'success',
             title: 'Licitación publicada correctamente',
@@ -94,6 +119,8 @@ export class NuevaLicitacionComponent implements OnInit {
         },
         error: () => {
           this.enviando = false;
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
           Swal.fire('Error', 'No se pudo publicar la licitación. Inténtalo nuevamente.', 'error');
         }
       });

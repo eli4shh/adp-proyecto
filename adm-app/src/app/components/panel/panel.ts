@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
@@ -57,7 +57,8 @@ export class PanelComponent implements OnInit, OnDestroy {
     private servicios: ServiciosExternosService,
     private evaluacionService: EvaluacionService,
     private router: Router,
-    private auth: AuthService
+    private auth: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -251,6 +252,8 @@ export class PanelComponent implements OnInit, OnDestroy {
 
   abrirNuevaLicitacion() {
     this.nuevaModal?.abrir();
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   recargar() {
@@ -259,12 +262,15 @@ export class PanelComponent implements OnInit, OnDestroy {
     this.rankingPorSolicitud.clear();
     this.servicios.limpiarCache();
     this.cargarDatos();
+    this.cdr.markForCheck();
   }
 
   /** Inserta la licitación recién publicada al instante en la bandeja. */
   onLicitacionCreada(nueva: SolicitudCotizacion) {
     this.solicitudes = [nueva, ...this.solicitudes];
     this.cargarPropuestas(nueva.id);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   /** Ejecuta el algoritmo multicriterio sobre las propuestas de una solicitud. */
