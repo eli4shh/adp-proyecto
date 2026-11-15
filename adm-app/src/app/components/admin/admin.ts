@@ -214,8 +214,76 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
-  // ACCIONES: EVALUAR, RE-EVALUAR Y ADJUDICAR
+  // ACCIONES: EVALUAR, RE-EVALUAR, DETENER/REANUDAR Y ADJUDICAR
   // ---------------------------------------------------------------------------
+
+  detenerPostulaciones() {
+    const sol = this.solicitudActiva;
+    if (!sol || sol.estado === 'cerrada') return;
+
+    Swal.fire({
+      title: '¿Detener postulaciones?',
+      text: `Se pausará la recepción pública de propuestas para "${sol.titulo}" y pasará a Mesa de Evaluación.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, pasar a evaluación',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.servicios.cambiarEstadoSolicitud(sol.id, 'en_evaluacion').subscribe({
+          next: () => {
+            sol.estado = 'en_evaluacion';
+            this.solicitudes = this.solicitudes.map((s) => s.id === sol.id ? { ...s, estado: 'en_evaluacion' } : s);
+            Swal.fire({
+              icon: 'success',
+              title: 'Mesa de Evaluación Activa',
+              text: 'Se han detenido las postulaciones públicas para esta licitación.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: () => {
+            Swal.fire('Error', 'No se pudo actualizar el estado de la licitación.', 'error');
+          }
+        });
+      }
+    });
+  }
+
+  reanudarPostulaciones() {
+    const sol = this.solicitudActiva;
+    if (!sol || sol.estado === 'cerrada') return;
+
+    Swal.fire({
+      title: '¿Reanudar postulaciones?',
+      text: `La licitación "${sol.titulo}" volverá a estar abierta en el portal público para recibir nuevas propuestas.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, reanudar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#16a34a'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.servicios.cambiarEstadoSolicitud(sol.id, 'abierta').subscribe({
+          next: () => {
+            sol.estado = 'abierta';
+            this.solicitudes = this.solicitudes.map((s) => s.id === sol.id ? { ...s, estado: 'abierta' } : s);
+            Swal.fire({
+              icon: 'success',
+              title: 'Convocatoria Abierta',
+              text: 'Se ha reanudado la recepción pública de propuestas.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: () => {
+            Swal.fire('Error', 'No se pudo reanudar la licitación.', 'error');
+          }
+        });
+      }
+    });
+  }
 
   reevaluar() {
     if (this.propuestas.length < 2) {

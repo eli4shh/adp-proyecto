@@ -116,7 +116,36 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   propuestasDe(solicitudId: string): PropuestaCotizacion[] {
-    return this.propuestasPorSolicitud.get(solicitudId) ?? [];
+    const list = this.propuestasPorSolicitud.get(solicitudId) ?? [];
+    const ranking = this.rankingPorSolicitud.get(solicitudId);
+    const sol = this.solicitudes.find((s) => s.id === solicitudId);
+
+    // Ordenar con lógica estricta:
+    // Si la licitación está cerrada: el adjudicado va primero obligatoriamente.
+    // Luego, los demás ordenados descendentemente por su puntaje final del ranking AHP.
+    return [...list].sort((a, b) => {
+      if (sol?.estado === 'cerrada') {
+        const aWin = a.estado === 'seleccionada' || this.esGanador(a, sol);
+        const bWin = b.estado === 'seleccionada' || this.esGanador(b, sol);
+        if (aWin && !bWin) return -1;
+        if (!aWin && bWin) return 1;
+      }
+      const scoreA = ranking?.find((r) => r.propuesta.id === a.id)?.puntajeFinal ?? 0;
+      const scoreB = ranking?.find((r) => r.propuesta.id === b.id)?.puntajeFinal ?? 0;
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return (Number(a.monto_cotizado) || 0) - (Number(b.monto_cotizado) || 0);
+    });
+  }
+
+  esTop1(p: PropuestaCotizacion, sol: SolicitudCotizacion): boolean {
+    if (sol.estado === 'cerrada') {
+      return false; // En licitación cerrada solo el ganador lleva el badge "Adjudicado"
+    }
+    const ranking = this.rankingPorSolicitud.get(sol.id);
+    if (ranking && ranking.length > 0) {
+      return ranking[0].propuesta.id === p.id;
+    }
+    return false;
   }
 
   categoriaNombre(id: string): string {
@@ -270,11 +299,11 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   verExpediente(p: PropuestaCotizacion) {
-    if (p.archivo_url && (p.archivo_url.startsWith('http') || p.archivo_url.startsWith('data:'))) {
-      window.open(p.archivo_url, '_blank');
-      return;
-    }
     const monto = Number(p.monto_cotizado).toLocaleString('es-PE', { minimumFractionDigits: 2 });
+    const nombreDoc = (p.archivo_url && !p.archivo_url.startsWith('data:'))
+      ? p.archivo_url.split('/').pop() || 'Expediente_Tecnico_Digital.pdf'
+      : (p.archivo_url?.startsWith('data:') ? 'Documento_Adjunto_Postor.pdf' : 'Expediente_Tecnico_Digital.pdf');
+
     Swal.fire({
       title: `<span style="font-size:1.15rem;font-weight:700;color:#0f172a;">Expediente Técnico del Proveedor</span>`,
       html: `
@@ -282,6 +311,7 @@ export class PanelComponent implements OnInit, OnDestroy {
           <p style="margin-bottom:0.4rem;"><b>Proveedor:</b> ${p.proveedor?.razon_social ?? '—'}</p>
           <p style="margin-bottom:0.4rem;"><b>RUC:</b> <span style="font-family:monospace;color:#2563eb;">${p.proveedor?.ruc ?? '—'}</span></p>
           <p style="margin-bottom:0.4rem;"><b>Contacto:</b> ${p.proveedor?.nombre_contacto ?? '—'} (${p.proveedor?.telefono ?? '—'})</p>
+          <p style="margin-bottom:0.4rem;"><b>Email:</b> ${p.proveedor?.email ?? '—'}</p>
           <p style="margin-bottom:0.4rem;"><b>Monto Ofertado:</b> S/ ${monto} (Sin I.G.V.)</p>
           <p style="margin-bottom:0.4rem;"><b>Plazo de Ejecución:</b> ${p.tiempo_entrega_dias} días calendario</p>
           <hr style="border:0;border-top:1px solid #e2e8f0;margin:0.75rem 0;">
@@ -289,13 +319,177 @@ export class PanelComponent implements OnInit, OnDestroy {
           <p style="background:#f8fafc;padding:0.65rem 0.85rem;border-radius:6px;border:1px solid #e2e8f0;font-size:0.82rem;color:#475569;margin-bottom:0.5rem;">
             ${p.propuesta_tecnica || 'Plan de trabajo técnico homologado según bases del pliego con repuestos originales y personal calificado.'}
           </p>
-          <p style="margin-top:0.5rem;color:#64748b;font-size:0.78rem;">
-            Documento adjunto: <b>${p.archivo_url || 'Expediente_Tecnico_Digital.pdf'}</b>
-          </p>
+          <div style="margin-top:0.75rem;padding:0.6rem 0.8rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#1e40af;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>Archivo adjunto: <b>${nombreDoc}</b></span>
+            </div>
+            <button id="btn-ver-adjunto" type="button" style="background:#2563eb;color:#ffffff;border:none;border-radius:4px;padding:5px 12px;font-size:0.75rem;font-weight:600;cursor:pointer;">
+              Ver archivo adjunto
+            </button>
+          </div>
         </div>
       `,
-      confirmButtonText: 'Cerrar',
+      showCancelButton: true,
+      cancelButtonText: 'Cerrar',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Abrir Documento Adjunto',
+      confirmButtonColor: '#2563eb',
+      didOpen: () => {
+        const btn = document.getElementById('btn-ver-adjunto');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            Swal.close();
+            this.visualizarArchivoAdjunto(p);
+          });
+        }
+      }
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.visualizarArchivoAdjunto(p);
+      }
+    });
+  }
+
+  visualizarArchivoAdjunto(p: PropuestaCotizacion) {
+    const razon = p.proveedor?.razon_social ?? 'Proveedor';
+    const ruc = p.proveedor?.ruc ?? '—';
+    const monto = Number(p.monto_cotizado).toLocaleString('es-PE', { minimumFractionDigits: 2 });
+
+    if (p.archivo_url && p.archivo_url.startsWith('data:')) {
+      Swal.fire({
+        title: `Documento Técnico: ${razon}`,
+        html: `
+          <div style="width: 100%; height: 500px; max-height: 70vh; margin-top: 10px;">
+            <iframe src="${p.archivo_url}" style="width: 100%; height: 100%; border: 1px solid #cbd5e1; border-radius: 8px;"></iframe>
+          </div>
+        `,
+        width: '800px',
+        confirmButtonText: 'Cerrar Visor',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    // Visor de expediente técnico digital institucional integrado (sin redirecciones a URLs externas)
+    Swal.fire({
+      title: `Expediente Técnico Digital — ${razon}`,
+      html: `
+        <div style="text-align: left; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 22px; font-family: 'Inter', sans-serif; max-height: 65vh; overflow-y: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 13.5px; font-weight: 800; color: #1e3a8a; letter-spacing: 0.5px;">GRAND MARINA RESORT &amp; CONVENTION CENTER</div>
+              <div style="font-size: 11px; color: #64748b;">DIRECCIÓN DE COMPRAS Y CONTRATACIONES CORPORATIVAS</div>
+            </div>
+            <div style="text-align: right; font-size: 10.5px; color: #475569;">
+              <div>REF: EXP-TEC-${p.id.slice(0, 8).toUpperCase()}</div>
+              <div>FECHA: ${new Date(p.created_at).toLocaleDateString('es-PE')}</div>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 12px; line-height: 1.6; color: #1e293b;">
+            <div><strong>Postor Oficial:</strong> ${razon} &nbsp;|&nbsp; <strong>RUC:</strong> <code style="color: #2563eb;">${ruc}</code></div>
+            <div><strong>Representante:</strong> ${p.proveedor?.nombre_contacto ?? '—'} &nbsp;|&nbsp; <strong>Contacto:</strong> ${p.proveedor?.telefono ?? '—'}</div>
+            <div><strong>Oferta Económica:</strong> S/ ${monto} &nbsp;|&nbsp; <strong>Plazo de Entrega:</strong> ${p.tiempo_entrega_dias} días</div>
+          </div>
+
+          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">1. MEMORIA DESCRIPTIVA Y ALCANCE TÉCNICO:</div>
+          <div style="font-size: 12px; color: #475569; line-height: 1.6; margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 6px; border-left: 3px solid #2563eb;">
+            ${p.propuesta_tecnica || 'El postor presenta el plan técnico de mantenimiento preventivo y correctivo con personal técnico homologado, herramientas de diagnóstico de última generación y repuestos originales conforme a los términos de referencia emitidos por Grand Marina Resort.'}
+          </div>
+
+          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">2. CONSTANCIAS Y HOMOLOGACIÓN:</div>
+          <ul style="font-size: 11.5px; color: #475569; margin: 0 0 16px 18px; line-height: 1.6;">
+            <li>Ficha RUC activa y habida en SUNAT sin omisiones tributarias.</li>
+            <li>Certificado de Póliza de Responsabilidad Civil contra terceros vigente.</li>
+            <li>Protocolo de Seguridad y Salud en el Trabajo (SST) para operaciones en sitio.</li>
+            <li>Garantía técnica de servicio de 12 meses pos-ejecución.</li>
+          </ul>
+
+          <div style="border-top: 1px dashed #cbd5e1; padding-top: 14px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10.5px; color: #64748b;">
+            <div>
+              <span style="display: inline-block; background: #ecfdf5; color: #059669; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid #a7f3d0;">
+                EXPEDIENTE VALIDADO DIGITALMENTE
+              </span>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-family: monospace; color: #94a3b8; font-size: 9px; margin-bottom: 4px;">Firma Digital Homologada</div>
+              <div style="font-weight: 600; color: #334155; border-top: 1px solid #94a3b8; padding-top: 2px;">${p.proveedor?.nombre_contacto ?? razon}</div>
+            </div>
+          </div>
+        </div>
+      `,
+      width: '720px',
+      showCancelButton: false,
+      confirmButtonText: 'Cerrar Documento',
       confirmButtonColor: '#2563eb'
+    });
+  }
+
+  detenerPostulaciones(sol: SolicitudCotizacion) {
+    if (sol.estado === 'cerrada') return;
+
+    Swal.fire({
+      title: '¿Detener postulaciones?',
+      text: `Se cerrará la recepción pública de propuestas para "${sol.titulo}" y pasará a Mesa de Evaluación.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, pasar a evaluación',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.servicios.cambiarEstadoSolicitud(sol.id, 'en_evaluacion').subscribe({
+          next: () => {
+            sol.estado = 'en_evaluacion';
+            Swal.fire({
+              icon: 'success',
+              title: 'Recepción detenida',
+              text: 'La licitación ahora se encuentra en evaluación técnica.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: () => {
+            Swal.fire('Error', 'No se pudo actualizar el estado de la licitación.', 'error');
+          }
+        });
+      }
+    });
+  }
+
+  reanudarPostulaciones(sol: SolicitudCotizacion) {
+    if (sol.estado === 'cerrada') return;
+
+    Swal.fire({
+      title: '¿Reanudar postulaciones?',
+      text: `La licitación "${sol.titulo}" volverá a estar abierta en el portal público para recibir propuestas.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, reanudar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#16a34a'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.servicios.cambiarEstadoSolicitud(sol.id, 'abierta').subscribe({
+          next: () => {
+            sol.estado = 'abierta';
+            Swal.fire({
+              icon: 'success',
+              title: 'Convocatoria reanudada',
+              text: 'La licitación vuelve a aceptar postulaciones de proveedores.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: () => {
+            Swal.fire('Error', 'No se pudo reanudar la licitación.', 'error');
+          }
+        });
+      }
     });
   }
 

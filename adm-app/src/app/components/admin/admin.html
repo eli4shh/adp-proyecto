@@ -112,9 +112,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
           <span class="ea-breadcrumb__item ea-breadcrumb__item--code">{{ codigoLicitacion }}</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-          <span class="ea-breadcrumb__badge ea-breadcrumb__badge--eval">
-            <span class="ea-dot ea-dot--blue"></span>
-            En Evaluación
+          <span class="ea-breadcrumb__badge"
+            [class.ea-breadcrumb__badge--eval]="solicitudActiva?.estado === 'en_evaluacion'"
+            [class.ea-breadcrumb__badge--open]="solicitudActiva?.estado === 'abierta'"
+            [class.ea-breadcrumb__badge--closed]="solicitudActiva?.estado === 'cerrada'">
+            <span class="ea-dot"
+              [class.ea-dot--blue]="solicitudActiva?.estado === 'en_evaluacion'"
+              [class.ea-dot--green]="solicitudActiva?.estado === 'abierta'"
+              [class.ea-dot--gray]="solicitudActiva?.estado === 'cerrada'"></span>
+            {{ etiquetaEstadoSolicitud(solicitudActiva?.estado || 'en_evaluacion') }}
           </span>
         </div>
 
@@ -126,13 +132,47 @@
               {{ solicitudActiva.descripcion ?? 'Proceso de evaluación multicriterio AHP para la solicitud activa de cotización.' }}
             </p>
           </div>
-          <!-- SELECTOR + HISTORIAL -->
+          <!-- SELECTOR + ACCIONES DE ESTADO + HISTORIAL -->
           <div class="ea-selector-row" *ngIf="solicitudes.length">
             <select class="ea-select" [value]="solicitudActivaId" (change)="cambiarSolicitud(sel.value)" #sel>
               <option *ngFor="let s of solicitudes" [value]="s.id">
-                {{ s.titulo.startsWith('LIC-') ? s.titulo : ('LIC-2025-' + (s.id | slice:0:3 | uppercase) + ': ' + s.titulo) }}
+                {{ s.titulo.startsWith('LIC-') ? s.titulo : ('LIC-2025-' + (s.id | slice:0:3 | uppercase) + ': ' + s.titulo) }} ({{ etiquetaEstadoSolicitud(s.estado) }})
               </option>
             </select>
+
+            <!-- Botón para detener postulaciones e iniciar evaluación técnica -->
+            <button *ngIf="solicitudActiva?.estado === 'abierta'"
+              type="button"
+              class="ea-btn ea-btn--warning"
+              (click)="detenerPostulaciones()"
+              title="Detener recepción pública de ofertas y pasar a evaluación inmediata">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+              </svg>
+              <span>Detener Postulaciones</span>
+            </button>
+
+            <!-- Botón para reanudar recepción de ofertas en el portal público -->
+            <button *ngIf="solicitudActiva?.estado === 'en_evaluacion'"
+              type="button"
+              class="ea-btn ea-btn--success"
+              (click)="reanudarPostulaciones()"
+              title="Reanudar recepción de ofertas en el portal de postulaciones">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Reanudar Postulaciones</span>
+            </button>
+
+            <!-- Indicador fijo si la licitación ya fue adjudicada y cuenta con contrato -->
+            <span *ngIf="solicitudActiva?.estado === 'cerrada'" class="ea-locked-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span>Licitación Adjudicada</span>
+            </span>
+
             <button class="ea-btn ea-btn--ghost" (click)="abrirHistorial()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>

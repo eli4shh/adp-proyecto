@@ -251,6 +251,24 @@
               <span class="bq-proposals-count">
                 {{ propuestasDe(sol.id).length }} Propuestas Recibidas
               </span>
+              <button *ngIf="sol.estado === 'abierta'"
+                class="bq-btn-state"
+                (click)="detenerPostulaciones(sol)"
+                title="Detener recepción pública e iniciar evaluación técnica">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                Detener postulaciones
+              </button>
+              <button *ngIf="sol.estado === 'en_evaluacion'"
+                class="bq-btn-state bq-btn-state--resume"
+                (click)="reanudarPostulaciones(sol)"
+                title="Reanudar recepción pública de ofertas">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Reanudar postulaciones
+              </button>
               <span class="bq-status-badge"
                 [class.bq-status-badge--abierta]="sol.estado === 'abierta'"
                 [class.bq-status-badge--evaluacion]="sol.estado === 'en_evaluacion'"
@@ -313,7 +331,8 @@
                     <!-- Proveedor + Chip Top 1 separado -->
                     <td>
                       <div class="bq-provider-cell">
-                        <span class="bq-top-badge" *ngIf="i === 0 && propuestasDe(sol.id).length > 1">Top 1</span>
+                        <span class="bq-top-badge bq-top-badge--winner" *ngIf="esGanador(p, sol) && sol.estado === 'cerrada'">Adjudicado</span>
+                        <span class="bq-top-badge" *ngIf="esTop1(p, sol)">Top 1</span>
                         <strong class="bq-provider-name">{{ p.proveedor?.razon_social ?? '—' }}</strong>
                       </div>
                     </td>

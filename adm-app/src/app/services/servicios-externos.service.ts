@@ -7,6 +7,7 @@ import {
   Contrato,
   DatosContrato,
   EstadoPropuesta,
+  EstadoSolicitud,
   EvaluacionCriterios,
   FiltrosSolicitud,
   PostulacionPayload,
@@ -138,9 +139,69 @@ export class ServiciosExternosService {
 
   private combinarPropuestas(locales: PropuestaCotizacion[], base: PropuestaCotizacion[]): PropuestaCotizacion[] {
     const map = new Map<string, PropuestaCotizacion>();
-    base.forEach((p) => map.set(p.id, p));
-    locales.forEach((p) => map.set(p.id, p));
+
+    const getProvKey = (p: PropuestaCotizacion) => {
+      return (p.proveedor?.ruc && p.proveedor.ruc.trim()) ||
+        p.proveedor_id ||
+        (p.proveedor?.razon_social && p.proveedor.razon_social.trim().toLowerCase()) ||
+        p.id;
+    };
+
+    // 1. Insertamos las propuestas base
+    base.forEach((p) => {
+      const key = `${p.solicitud_id}_${getProvKey(p)}`;
+      map.set(key, p);
+    });
+
+    // 2. Sobreponemos las propuestas locales evitando duplicados del mismo proveedor en la misma licitación
+    locales.forEach((p) => {
+      const key = `${p.solicitud_id}_${getProvKey(p)}`;
+      const existente = map.get(key);
+      if (!existente || p.estado === 'seleccionada' || existente.estado !== 'seleccionada') {
+        map.set(key, p);
+      }
+    });
+
     return Array.from(map.values());
+  }
+
+  cambiarEstadoSolicitud(solicitudId: string, nuevoEstado: EstadoSolicitud): Observable<SolicitudCotizacion> {
+    this.solicitudesCache$ = null;
+    const fallback: SolicitudCotizacion = {
+      id: solicitudId,
+      titulo: 'Licitación',
+      categoria_id: '',
+      descripcion: null,
+      presupuesto_referencial: 0,
+      fecha_limite: null,
+      estado: nuevoEstado,
+      created_at: new Date().toISOString()
+    };
+
+    if (!this.supabase) {
+      this.refrescarCatalogoSolicitudesAbiertas();
+      return of(fallback);
+    }
+
+    return from(
+      this.supabase
+        .from('solicitudes_cotizacion')
+        .update({ estado: nuevoEstado })
+        .eq('id', solicitudId)
+        .select('*, categoria:categorias_servicio(*)')
+        .single()
+        .then((res: RespuestaSupabase) => {
+          if (res.error) throw res.error;
+          return res.data as SolicitudCotizacion;
+        })
+    ).pipe(
+      tap(() => this.refrescarCatalogoSolicitudesAbiertas()),
+      catchError((err) => {
+        console.warn('Advertencia al actualizar estado de solicitud en Supabase:', err);
+        this.refrescarCatalogoSolicitudesAbiertas();
+        return of(fallback);
+      })
+    );
   }
 
   listarPropuestas(solicitudId?: string): Observable<PropuestaCotizacion[]> {
@@ -586,7 +647,7 @@ export class ServiciosExternosService {
         monto_cotizado: 42500,
         tiempo_entrega_dias: 15,
         propuesta_tecnica: 'Plan de mantenimiento preventivo y correctivo con repuestos originales y técnicos homologados.',
-        archivo_url: 'https://cloud.example.com/propuestas/termoclima.pdf',
+        archivo_url: 'Expediente_Termoclima_HVAC.pdf',
         estado: 'recibida',
         created_at: new Date().toISOString(),
         proveedor: {
@@ -608,7 +669,7 @@ export class ServiciosExternosService {
         monto_cotizado: 44900,
         tiempo_entrega_dias: 12,
         propuesta_tecnica: 'Mantenimiento integral de chillers y unidades manejadoras de aire con protocolo rápido.',
-        archivo_url: 'https://cloud.example.com/propuestas/climapro.pdf',
+        archivo_url: 'Expediente_ClimaPro.pdf',
         estado: 'recibida',
         created_at: new Date().toISOString(),
         proveedor: {
@@ -630,7 +691,7 @@ export class ServiciosExternosService {
         monto_cotizado: 41000,
         tiempo_entrega_dias: 25,
         propuesta_tecnica: 'Servicio técnico especializado en chillers industriales con insumos importados.',
-        archivo_url: 'https://cloud.example.com/propuestas/servicios_frio.pdf',
+        archivo_url: 'Expediente_Servicios_Frio.pdf',
         estado: 'recibida',
         created_at: new Date().toISOString(),
         proveedor: {
@@ -652,7 +713,7 @@ export class ServiciosExternosService {
         monto_cotizado: 47200,
         tiempo_entrega_dias: 20,
         propuesta_tecnica: 'Mantenimiento correctivo y preventivo programado.',
-        archivo_url: 'https://cloud.example.com/propuestas/refrigeracion_lima.pdf',
+        archivo_url: 'Expediente_Refrigeracion_Lima.pdf',
         estado: 'recibida',
         created_at: new Date().toISOString(),
         proveedor: {
@@ -674,7 +735,7 @@ export class ServiciosExternosService {
         monto_cotizado: 48000,
         tiempo_entrega_dias: 12,
         propuesta_tecnica: 'Menú ejecutivo premium de 4 tiempos, chef residente y montaje con floristería.',
-        archivo_url: 'https://cloud.example.com/propuestas/saboryservicio_catering.pdf',
+        archivo_url: 'Expediente_Sabor_Servicio.pdf',
         estado: 'recibida',
         created_at: '2026-09-15T10:00:00Z',
         proveedor: {
@@ -696,7 +757,7 @@ export class ServiciosExternosService {
         monto_cotizado: 39500,
         tiempo_entrega_dias: 18,
         propuesta_tecnica: 'Buffet de 3 estaciones, personal de servicio incluido y alquiler de mobiliario.',
-        archivo_url: 'https://cloud.example.com/propuestas/cateringpais_catering.pdf',
+        archivo_url: 'Expediente_Catering_Del_Pais.pdf',
         estado: 'recibida',
         created_at: '2026-09-16T10:00:00Z',
         proveedor: {
@@ -718,7 +779,7 @@ export class ServiciosExternosService {
         monto_cotizado: 35000,
         tiempo_entrega_dias: 25,
         propuesta_tecnica: 'Propuesta económica con menú estándar, montaje sencillo y servicio autoservicio.',
-        archivo_url: 'https://cloud.example.com/propuestas/grupoeventos_catering.pdf',
+        archivo_url: 'Expediente_Grupo_Eventos.pdf',
         estado: 'recibida',
         created_at: '2026-09-17T10:00:00Z',
         proveedor: {
@@ -741,7 +802,7 @@ export class ServiciosExternosService {
         monto_cotizado: 42000,
         tiempo_entrega_dias: 14,
         propuesta_tecnica: 'Mantenimiento integral de 3 piscinas principales y recirculación automatizada.',
-        archivo_url: 'https://cloud.example.com/propuestas/aquaclean_piscinas.pdf',
+        archivo_url: 'Expediente_AquaClean.pdf',
         estado: 'seleccionada',
         created_at: '2026-09-10T10:00:00Z',
         proveedor: {
@@ -763,7 +824,7 @@ export class ServiciosExternosService {
         monto_cotizado: 44500,
         tiempo_entrega_dias: 18,
         propuesta_tecnica: 'Servicio técnico especializado y control de calidad químico semanal.',
-        archivo_url: 'https://cloud.example.com/propuestas/aquatotal_piscinas.pdf',
+        archivo_url: 'Expediente_AquaTotal.pdf',
         estado: 'rechazada',
         created_at: '2026-09-11T10:00:00Z',
         proveedor: {
