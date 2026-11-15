@@ -235,6 +235,67 @@ export class PanelComponent implements OnInit, OnDestroy {
     });
   }
 
+  exportarReporte() {
+    if (!this.solicitudes.length) {
+      Swal.fire('Atención', 'No hay licitaciones para exportar.', 'info');
+      return;
+    }
+
+    const separador = ';';
+    const BOM = '\uFEFF';
+    const cabeceras = [
+      'Código Licitación',
+      'Título de la Convocatoria',
+      'Categoría de Servicio',
+      'Presupuesto Referencial (S/)',
+      'Fecha Límite',
+      'Estado',
+      'Propuestas Recibidas',
+      'Fecha de Registro'
+    ];
+
+    const filas = this.solicitudes.map((sol) => {
+      const propuestas = this.propuestasPorSolicitud.get(sol.id) ?? [];
+      const cat = sol.categoria?.nombre || this.categorias.find((c) => c.id === sol.categoria_id)?.nombre || 'General';
+      const ppto = Number(sol.presupuesto_referencial || 0).toFixed(2);
+      const est = this.etiquetaEstado[sol.estado] || sol.estado;
+
+      return [
+        `"LIC-${sol.id.slice(0, 8).toUpperCase()}"`,
+        `"${(sol.titulo || '').replace(/"/g, '""')}"`,
+        `"${cat.replace(/"/g, '""')}"`,
+        ppto,
+        sol.fecha_limite || '—',
+        est,
+        propuestas.length,
+        sol.created_at ? new Date(sol.created_at).toLocaleDateString('es-PE') : '—'
+      ];
+    });
+
+    const csvContent = BOM + [
+      cabeceras.join(separador),
+      ...filas.map((f) => f.join(separador))
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Reporte_Licitaciones_GrandMarina_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Reporte exportado',
+      text: 'Se descargó el consolidado de licitaciones y cotizaciones para Excel.',
+      timer: 1800,
+      showConfirmButton: false
+    });
+  }
+
   get usuarioActual(): User | null {
     return this.auth.usuarioActual;
   }
