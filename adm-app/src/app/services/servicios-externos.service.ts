@@ -77,7 +77,20 @@ export class ServiciosExternosService {
       const raw = localStorage.getItem(this.STORAGE_SOLICITUDES_KEY);
       if (!raw) return [];
       const list = JSON.parse(raw);
-      return Array.isArray(list) ? list : [];
+      if (!Array.isArray(list)) return [];
+      const validas = list.filter(
+        (s): s is SolicitudCotizacion =>
+          !!s &&
+          typeof s === 'object' &&
+          typeof s.id === 'string' &&
+          s.id.trim().length > 0 &&
+          typeof s.titulo === 'string' &&
+          s.titulo.trim().length > 0
+      );
+      if (validas.length !== list.length) {
+        localStorage.setItem(this.STORAGE_SOLICITUDES_KEY, JSON.stringify(validas));
+      }
+      return validas;
     } catch {
       return [];
     }
@@ -85,6 +98,7 @@ export class ServiciosExternosService {
 
   guardarSolicitudEnStorage(s: SolicitudCotizacion): void {
     try {
+      if (!s || !s.id || !s.titulo) return;
       if (typeof window === 'undefined' || !window.localStorage) return;
       const list = this.obtenerSolicitudesDeStorage();
       const filtradas = list.filter((item) => item.id !== s.id);
@@ -104,7 +118,11 @@ export class ServiciosExternosService {
             .select('*, categoria:categorias_servicio(*)')
             .order('created_at', { ascending: false })
         ).pipe(
-          map((res) => this.extraerDatos<SolicitudCotizacion>(res)),
+          map((res) => {
+            const datos = this.extraerDatos<SolicitudCotizacion>(res);
+            const validas = datos.filter((s) => !!s && !!s.id && !!s.titulo);
+            return validas.length > 0 ? validas : this.obtenerSolicitudesDeStorage();
+          }),
           catchError(() => of(this.obtenerSolicitudesDeStorage())),
           shareReplay(1)
         );
@@ -114,6 +132,7 @@ export class ServiciosExternosService {
   }
 
   private cumpleFiltros(s: SolicitudCotizacion, filtros: FiltrosSolicitud): boolean {
+    if (!s || !s.id || !s.titulo) return false;
     const okEstado = !filtros.estado || s.estado === filtros.estado;
     const okCategoria = !filtros.categoriaId || s.categoria_id === filtros.categoriaId;
     return okEstado && okCategoria;
@@ -128,8 +147,20 @@ export class ServiciosExternosService {
       if (!raw) return [];
       const list = JSON.parse(raw) as PropuestaCotizacion[];
       if (!Array.isArray(list)) return [];
-      if (!solicitudId) return list;
-      return list.filter((p) => p.solicitud_id === solicitudId);
+      const validas = list.filter(
+        (p): p is PropuestaCotizacion =>
+          !!p &&
+          typeof p === 'object' &&
+          typeof p.id === 'string' &&
+          p.id.trim().length > 0 &&
+          typeof p.solicitud_id === 'string' &&
+          p.solicitud_id.trim().length > 0
+      );
+      if (validas.length !== list.length) {
+        localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(validas));
+      }
+      if (!solicitudId) return validas;
+      return validas.filter((p) => p.solicitud_id === solicitudId);
     } catch {
       return [];
     }
@@ -137,6 +168,7 @@ export class ServiciosExternosService {
 
   private guardarEnStorage(propuesta: PropuestaCotizacion) {
     try {
+      if (!propuesta || !propuesta.id || !propuesta.solicitud_id) return;
       if (typeof window === 'undefined' || !window.localStorage) return;
       const list = this.obtenerPropuestasDeStorage();
       const filtradas = list.filter((p) => p.id !== propuesta.id);

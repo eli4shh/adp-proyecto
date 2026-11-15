@@ -78,26 +78,27 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   get totalAbiertas(): number {
-    return this.solicitudes.filter((s) => s.estado === 'abierta').length;
+    return this.solicitudes.filter((s) => s?.estado === 'abierta').length;
   }
 
   get totalEnEvaluacion(): number {
-    return this.solicitudes.filter((s) => s.estado === 'en_evaluacion').length;
+    return this.solicitudes.filter((s) => s?.estado === 'en_evaluacion').length;
   }
 
   get totalCerradas(): number {
-    return this.solicitudes.filter((s) => s.estado === 'cerrada').length;
+    return this.solicitudes.filter((s) => s?.estado === 'cerrada').length;
   }
 
   get solicitudesFiltradas(): SolicitudCotizacion[] {
     const q = this.filtroBusqueda.trim().toLowerCase();
     return this.solicitudes.filter((s) => {
+      if (!s || !s.id || !s.titulo || s.titulo.trim().length === 0) return false;
       const okCategoria = !this.filtroCategoria || s.categoria_id === this.filtroCategoria;
       const okEstado = !this.filtroEstado || s.estado === this.filtroEstado;
       const okBusqueda = !q ||
-        s.titulo.toLowerCase().includes(q) ||
+        (s.titulo && s.titulo.toLowerCase().includes(q)) ||
         (s.descripcion && s.descripcion.toLowerCase().includes(q)) ||
-        s.id.toLowerCase().includes(q);
+        (s.id && s.id.toLowerCase().includes(q));
       return okCategoria && okEstado && okBusqueda;
     });
   }
@@ -107,9 +108,10 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   codigoLicitacion(s: SolicitudCotizacion): string {
-    if (!s) return 'LIC-2025-000';
-    if (s.titulo.startsWith('LIC-')) {
-      return s.titulo.split(':')[0].trim();
+    if (!s || !s.id) return 'LIC-2025-000';
+    const titulo = s.titulo || '';
+    if (titulo.startsWith('LIC-')) {
+      return titulo.split(':')[0].trim();
     }
     const short = s.id.startsWith('a0000000-0000-4000-8000-')
       ? s.id.slice(-3).toUpperCase()

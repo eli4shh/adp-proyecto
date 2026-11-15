@@ -84,9 +84,10 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   get codigoLicitacion(): string {
-    if (!this.solicitudActiva) return 'LIC-2025-014';
-    if (this.solicitudActiva.titulo.startsWith('LIC-')) {
-      const parts = this.solicitudActiva.titulo.split(':');
+    if (!this.solicitudActiva || !this.solicitudActiva.id) return 'LIC-2025-014';
+    const titulo = this.solicitudActiva.titulo || '';
+    if (titulo.startsWith('LIC-')) {
+      const parts = titulo.split(':');
       return parts[0].trim();
     }
     const short = this.solicitudActiva.id.startsWith('a0000000-0000-4000-8000-')
