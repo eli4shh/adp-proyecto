@@ -1,12 +1,11 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { ServiciosExternosService } from '../../services/servicios-externos.service';
 import { CategoriaServicio, SolicitudCotizacion } from '../../interfaces/servicios-externos';
-import { AuthNavComponent } from '../auth-nav/auth-nav';
 
 /**
  * Formulario público de postulación de proveedores (ruta /postulacion).
@@ -16,7 +15,7 @@ import { AuthNavComponent } from '../auth-nav/auth-nav';
 @Component({
   selector: 'app-postulacion',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive, AuthNavComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './reserva-form.html',
   styleUrls: ['./reserva-form.css']
 })
@@ -27,6 +26,7 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
   enviando = false;
   archivoBase64: string | null = null;
   nombreArchivo: string | null = null;
+  tamanoArchivo: string | null = null;
   form!: FormGroup;
   private suscripciones: Subscription[] = [];
 
@@ -53,6 +53,12 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
   get solicitudSeleccionada(): SolicitudCotizacion | undefined {
     const id = this.form.get('solicitud_id')?.value;
     return this.solicitudes.find((s) => s.id === id);
+  }
+
+  get ahorroProyectado(): number {
+    const ref = this.solicitudSeleccionada?.presupuesto_referencial ?? 0;
+    const monto = Number(this.form.get('monto_cotizado')?.value) || 0;
+    return ref - monto;
   }
 
   private inicializarFormulario() {
@@ -104,15 +110,26 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Preselecciona la licitación indicada vía `?solicitudId=<ID>` (enlace "Postular como proveedor"). */
+  /** Preselecciona la licitación indicada vía `?solicitudId=<ID>` o la primera disponible. */
   private seleccionarSolicitudDesdeQuery() {
     const id = this.ruta.snapshot.queryParamMap.get('solicitudId');
-    if (!id) return;
-    if (!this.solicitudes.some((s) => s.id === id)) return;
-    const control = this.f['solicitud_id'];
-    if (control && !control.value) {
-      control.setValue(id);
+    if (id && this.solicitudes.some((s) => s.id === id)) {
+      this.form.patchValue({ solicitud_id: id });
+      return;
     }
+    // Si no viene parámetro en la URL y aún no se ha seleccionado ninguna, seleccionamos la primera activa
+    if (this.solicitudes.length > 0 && !this.form.get('solicitud_id')?.value) {
+      this.form.patchValue({ solicitud_id: this.solicitudes[0].id });
+    }
+  }
+
+  formatoTituloSolicitud(s: SolicitudCotizacion): string {
+    if (!s) return '';
+    if (s.titulo.startsWith('LIC-')) return s.titulo;
+    const codigo = s.id.startsWith('a0000000-0000-4000-8000-')
+      ? s.id.slice(-3).toUpperCase()
+      : s.id.slice(0, 3).toUpperCase();
+    return `LIC-2025-${codigo}: ${s.titulo}`;
   }
 
   categoriaNombre(id: string): string {
@@ -122,23 +139,59 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
   onArchivoSeleccionado(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) return;
+    if (file) {
+      this.procesarArchivo(file);
+    }
+  }
+
+  onArchivoSoltado(event: DragEvent) {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      this.procesarArchivo(file);
+    }
+  }
+
+  private procesarArchivo(file: File) {
     if (!file.type.startsWith('application/pdf') && !file.type.startsWith('image/')) {
       Swal.fire('Atención', 'Adjunta un PDF o una imagen (JPG/PNG).', 'warning');
-      input.value = '';
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      Swal.fire('Atención', 'El archivo supera los 2 MB permitidos.', 'warning');
-      input.value = '';
+    if (file.size > 10 * 1024 * 1024) {
+      Swal.fire('Atención', 'El archivo supera los 10 MB permitidos.', 'warning');
       return;
     }
+
+    this.nombreArchivo = file.name;
+    const mb = file.size / (1024 * 1024);
+    this.tamanoArchivo = mb < 1 ? `${Math.round(file.size / 1024)} KB` : `${mb.toFixed(1)} MB`;
+
     const reader = new FileReader();
     reader.onload = () => {
       this.archivoBase64 = reader.result as string;
-      this.nombreArchivo = file.name;
+      this.form.patchValue({ archivo_url: this.nombreArchivo });
     };
     reader.readAsDataURL(file);
+  }
+
+  eliminarArchivo() {
+    this.nombreArchivo = null;
+    this.archivoBase64 = null;
+    this.tamanoArchivo = null;
+    this.form.patchValue({ archivo_url: '' });
+  }
+
+  verArchivo() {
+    if (this.archivoBase64) {
+      const win = window.open();
+      if (win) {
+        win.document.write(
+          `<iframe src="${this.archivoBase64}" frameborder="0" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>`
+        );
+      }
+    } else {
+      Swal.fire('Documento adjunto', `Archivo: ${this.nombreArchivo}`, 'info');
+    }
   }
 
   onSubmit() {
@@ -186,7 +239,7 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
           }).then(() => {
             this.form.reset({
               anios_experiencia: 0,
-              solicitud_id: '',
+              solicitud_id: this.solicitudes.length ? this.solicitudes[0].id : '',
               ruc: '',
               razon_social: '',
               nombre_contacto: '',
@@ -199,6 +252,7 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
             });
             this.archivoBase64 = null;
             this.nombreArchivo = null;
+            this.tamanoArchivo = null;
           });
         },
         error: () => {

@@ -70,13 +70,27 @@ const LABEL_CRITERION: Record<keyof PuntajesCriterios, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class EvaluacionService {
+  private pesosActuales: PesosEvaluacion = { ...PESOS_POR_DEFECTO };
+
+  getPesos(): PesosEvaluacion {
+    return { ...this.pesosActuales };
+  }
+
+  setPesos(nuevosPesos: PesosEvaluacion): void {
+    this.pesosActuales = { ...nuevosPesos };
+  }
+
+  restablecerPesos(): void {
+    this.pesosActuales = { ...PESOS_POR_DEFECTO };
+  }
+
   /**
    * Evalúa un conjunto de propuestas (deben incluir el join `proveedor`).
    * Devuelve el ranking ordenado descendentemente por puntaje final.
    */
   evaluarPropuestas(
     propuestas: PropuestaCotizacion[],
-    pesos: PesosEvaluacion = PESOS_POR_DEFECTO
+    pesos: PesosEvaluacion = this.pesosActuales
   ): PropuestaEvaluada[] {
     if (!propuestas.length) return [];
 

@@ -3,6 +3,7 @@ import { ReservaFormComponent } from './components/reserva-form/reserva-form';
 import { PanelComponent } from './components/panel/panel';
 import { AdminComponent } from './components/admin/admin';
 import { LoginComponent } from './components/login/login';
+import { ConfiguracionComponent } from './components/configuracion/configuracion';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -23,6 +24,12 @@ export const routes: Routes = [
     component: AdminComponent,
     canActivate: [authGuard],
     data: { titulo: 'Evaluación y Adjudicación' }
+  },
+  {
+    path: 'configuracion',
+    component: ConfiguracionComponent,
+    canActivate: [authGuard],
+    data: { titulo: 'Configuración de Criterios' }
   },
   // Redirecciones automáticas para URLs anteriores
   { path: 'cotizaciones', redirectTo: 'bandeja', pathMatch: 'full' },

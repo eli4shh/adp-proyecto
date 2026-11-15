@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
+import type { User } from '@supabase/supabase-js';
+import { AuthService } from '../../core/services/auth.service';
 import { ServiciosExternosService } from '../../services/servicios-externos.service';
 import { EvaluacionService } from '../../services/evaluacion.service';
 import {
@@ -23,7 +25,7 @@ import { AuthNavComponent } from '../auth-nav/auth-nav';
 @Component({
   selector: 'app-cotizaciones',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, NuevaLicitacionComponent, AuthNavComponent],
+  imports: [CommonModule, RouterLink, NuevaLicitacionComponent],
   templateUrl: './panel.html',
   styleUrls: ['./panel.css']
 })
@@ -33,6 +35,7 @@ export class PanelComponent implements OnInit, OnDestroy {
   propuestasPorSolicitud = new Map<string, PropuestaCotizacion[]>();
   filtroCategoria = '';
   filtroEstado = '';
+  filtroBusqueda = '';
   cargando = true;
   evaluandoIds = new Set<string>();
   private suscripciones: Subscription[] = [];
@@ -52,7 +55,8 @@ export class PanelComponent implements OnInit, OnDestroy {
   constructor(
     private servicios: ServiciosExternosService,
     private evaluacionService: EvaluacionService,
-    private router: Router
+    private router: Router,
+    private auth: AuthService
   ) {}
 
   ngOnInit() {
@@ -67,12 +71,48 @@ export class PanelComponent implements OnInit, OnDestroy {
     return ['abierta', 'en_evaluacion', 'cerrada'];
   }
 
+  get totalLicitaciones(): number {
+    return this.solicitudes.length;
+  }
+
+  get totalAbiertas(): number {
+    return this.solicitudes.filter((s) => s.estado === 'abierta').length;
+  }
+
+  get totalEnEvaluacion(): number {
+    return this.solicitudes.filter((s) => s.estado === 'en_evaluacion').length;
+  }
+
+  get totalCerradas(): number {
+    return this.solicitudes.filter((s) => s.estado === 'cerrada').length;
+  }
+
   get solicitudesFiltradas(): SolicitudCotizacion[] {
+    const q = this.filtroBusqueda.trim().toLowerCase();
     return this.solicitudes.filter((s) => {
       const okCategoria = !this.filtroCategoria || s.categoria_id === this.filtroCategoria;
       const okEstado = !this.filtroEstado || s.estado === this.filtroEstado;
-      return okCategoria && okEstado;
+      const okBusqueda = !q ||
+        s.titulo.toLowerCase().includes(q) ||
+        (s.descripcion && s.descripcion.toLowerCase().includes(q)) ||
+        s.id.toLowerCase().includes(q);
+      return okCategoria && okEstado && okBusqueda;
     });
+  }
+
+  onBuscar(e: Event) {
+    this.filtroBusqueda = (e.target as HTMLInputElement).value;
+  }
+
+  codigoLicitacion(s: SolicitudCotizacion): string {
+    if (!s) return 'LIC-2025-000';
+    if (s.titulo.startsWith('LIC-')) {
+      return s.titulo.split(':')[0].trim();
+    }
+    const short = s.id.startsWith('a0000000-0000-4000-8000-')
+      ? s.id.slice(-3).toUpperCase()
+      : s.id.slice(0, 3).toUpperCase();
+    return `LIC-2025-${short}`;
   }
 
   propuestasDe(solicitudId: string): PropuestaCotizacion[] {
@@ -161,6 +201,151 @@ export class PanelComponent implements OnInit, OnDestroy {
       error: () => {
         this.evaluandoIds.delete(solicitud.id);
         Swal.fire('Error', 'No se pudo guardar la evaluación. Inténtalo nuevamente.', 'error');
+      }
+    });
+  }
+
+  verExpediente(p: PropuestaCotizacion) {
+    if (p.archivo_url && (p.archivo_url.startsWith('http') || p.archivo_url.startsWith('data:'))) {
+      window.open(p.archivo_url, '_blank');
+      return;
+    }
+    const monto = Number(p.monto_cotizado).toLocaleString('es-PE', { minimumFractionDigits: 2 });
+    Swal.fire({
+      title: `<span style="font-size:1.15rem;font-weight:700;color:#0f172a;">Expediente Técnico del Proveedor</span>`,
+      html: `
+        <div style="text-align:left;font-size:0.85rem;color:#334155;line-height:1.6;padding:0.25rem 0.5rem;">
+          <p style="margin-bottom:0.4rem;"><b>Proveedor:</b> ${p.proveedor?.razon_social ?? '—'}</p>
+          <p style="margin-bottom:0.4rem;"><b>RUC:</b> <span style="font-family:monospace;color:#2563eb;">${p.proveedor?.ruc ?? '—'}</span></p>
+          <p style="margin-bottom:0.4rem;"><b>Contacto:</b> ${p.proveedor?.nombre_contacto ?? '—'} (${p.proveedor?.telefono ?? '—'})</p>
+          <p style="margin-bottom:0.4rem;"><b>Monto Ofertado:</b> S/ ${monto} (Sin I.G.V.)</p>
+          <p style="margin-bottom:0.4rem;"><b>Plazo de Ejecución:</b> ${p.tiempo_entrega_dias} días calendario</p>
+          <hr style="border:0;border-top:1px solid #e2e8f0;margin:0.75rem 0;">
+          <p style="margin-bottom:0.35rem;font-weight:600;color:#0f172a;">Resumen Ejecutivo Técnico:</p>
+          <p style="background:#f8fafc;padding:0.65rem 0.85rem;border-radius:6px;border:1px solid #e2e8f0;font-size:0.82rem;color:#475569;margin-bottom:0.5rem;">
+            ${p.propuesta_tecnica || 'Plan de trabajo técnico homologado según bases del pliego con repuestos originales y personal calificado.'}
+          </p>
+          <p style="margin-top:0.5rem;color:#64748b;font-size:0.78rem;">
+            Documento adjunto: <b>${p.archivo_url || 'Expediente_Tecnico_Digital.pdf'}</b>
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'Cerrar',
+      confirmButtonColor: '#2563eb'
+    });
+  }
+
+  get usuarioActual(): User | null {
+    return this.auth.usuarioActual;
+  }
+
+  get nombreUsuario(): string {
+    const u = this.usuarioActual;
+    if (!u) return 'Valeria Soto';
+    const meta = u.user_metadata;
+    if (meta && typeof meta['nombre'] === 'string' && meta['nombre'].trim()) {
+      return meta['nombre'].trim();
+    }
+    if (meta && typeof meta['full_name'] === 'string' && meta['full_name'].trim()) {
+      return meta['full_name'].trim();
+    }
+    if (meta && typeof meta['name'] === 'string' && meta['name'].trim()) {
+      return meta['name'].trim();
+    }
+    if (u.email) {
+      const alias = u.email.split('@')[0];
+      return alias
+        .split(/[._-]/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+    return 'Valeria Soto';
+  }
+
+  get rolUsuario(): string {
+    const u = this.usuarioActual;
+    if (!u) return 'Jefa de Compras & Licitaciones';
+    const meta = u.user_metadata;
+    if (meta && typeof meta['rol'] === 'string' && meta['rol'].trim()) {
+      return meta['rol'].trim();
+    }
+    if (meta && typeof meta['cargo'] === 'string' && meta['cargo'].trim()) {
+      return meta['cargo'].trim();
+    }
+    return 'Jefa de Compras & Licitaciones';
+  }
+
+  get inicialesUsuario(): string {
+    const nombre = this.nombreUsuario.trim();
+    if (!nombre) return 'VS';
+    const palabras = nombre.split(/\s+/).filter(Boolean);
+    if (palabras.length >= 2) {
+      return (palabras[0][0] + palabras[1][0]).toUpperCase();
+    }
+    return nombre.slice(0, 2).toUpperCase();
+  }
+
+  verPerfil() {
+    const u = this.usuarioActual;
+    const correo = u?.email ?? 'valeria.soto@grandmarina.pe';
+    const id = u?.id ? u.id.slice(0, 8) + '…' : 'USR-CORP-441';
+
+    Swal.fire({
+      title: 'Perfil de Usuario',
+      html: `
+        <div style="text-align: left; padding: 6px 0; font-size: 13.5px; color: #1e293b;">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center;">
+              ${this.inicialesUsuario}
+            </div>
+            <div>
+              <div style="font-size: 16px; font-weight: 700; color: #0f172a;">${this.nombreUsuario}</div>
+              <div style="color: #2563eb; font-weight: 600; font-size: 12.5px;">${this.rolUsuario}</div>
+            </div>
+          </div>
+          <div style="display: grid; gap: 8px; font-size: 13px;">
+            <div><strong style="color: #64748b;">Correo institucional:</strong> <span style="color: #0f172a;">${correo}</span></div>
+            <div><strong style="color: #64748b;">Organización:</strong> <span style="color: #0f172a;">Grand Marina Resort &amp; Convention Center</span></div>
+            <div><strong style="color: #64748b;">Área:</strong> <span style="color: #0f172a;">Dirección de Compras, Licitaciones y Servicios</span></div>
+            <div><strong style="color: #64748b;">ID de Sesión:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11.5px; color: #475569;">${id}</code></div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Cerrar Sesión',
+      confirmButtonColor: '#ef4444',
+      cancelButtonText: 'Cerrar',
+      cancelButtonColor: '#64748b'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.cerrarSesion();
+      }
+    });
+  }
+
+  cerrarSesion() {
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: 'Se finalizará tu sesión en el sistema de adquisiciones corporativas.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#64748b'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.auth.cerrarSesion().then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Sesión finalizada',
+            text: 'Has cerrado sesión exitosamente.',
+            timer: 1200,
+            showConfirmButton: false
+          }).then(() => {
+            this.router.navigate(['/login']);
+          });
+        });
       }
     });
   }

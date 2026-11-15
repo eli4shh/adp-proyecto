@@ -1,227 +1,487 @@
-<div class="admin-container">
-  <header class="corp-header">
-    <div class="header-left">
-      <span class="corp-brand"><span class="material-symbols-rounded">assessment</span></span>
-      <h1>Evaluación y Adjudicación</h1>
+<!-- ================================================================
+     Evaluación y Adjudicación — Grand Marina · Gestión de Compras
+     ================================================================ -->
+<div class="gm-shell">
+
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="gm-sidebar">
+    <div class="gm-sidebar__brand">
+      <!-- Logo estrella azul SVG -->
+      <svg class="gm-sidebar__logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="16" fill="#2563EB"/>
+        <path d="M16 6l2.47 7.6H26l-6.18 4.49 2.36 7.25L16 20.86l-6.18 4.48 2.36-7.25L6 13.6h7.53L16 6z"
+              fill="#fff"/>
+      </svg>
+      <div class="gm-sidebar__brand-text">
+        <span class="gm-sidebar__hotel">Grand Marina</span>
+        <span class="gm-sidebar__dept">Gestión de Compras</span>
+      </div>
     </div>
-    <nav class="header-nav">
-      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
-      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
-      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
+
+    <div class="gm-sidebar__section-label">OPERACIONES B2B</div>
+
+    <nav class="gm-sidebar__nav">
+      <!-- Bandeja -->
+      <a class="gm-sidebar__item" routerLink="/bandeja">
+        <svg class="gm-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Bandeja de Cotizaciones</span>
+      </a>
+
+      <!-- Evaluación — ACTIVO -->
+      <a class="gm-sidebar__item gm-sidebar__item--active" routerLink="/evaluacion">
+        <svg class="gm-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>Evaluación y Adjudicación</span>
+      </a>
+
+      <!-- Configuración -->
+      <a class="gm-sidebar__item" routerLink="/configuracion">
+        <svg class="gm-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span>Configuración de Criterios</span>
+      </a>
     </nav>
-    <app-auth-nav></app-auth-nav>
-  </header>
 
-  <main class="admin-main">
-    <div *ngIf="cargando" class="estado-vacio">Cargando datos…</div>
+    <div class="gm-sidebar__footer">
+      <a class="gm-sidebar__footer-link" (click)="cerrarSesion()" style="cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span>Cerrar Sesión</span>
+      </a>
+    </div>
+  </aside>
 
-    <ng-container *ngIf="!cargando">
-      <!-- Publicar nueva licitación -->
-      <div class="admin-actions">
-        <button class="btn btn-primary" (click)="nueva.abrir()">
-          <span class="material-symbols-rounded icon-sm">add</span> Nueva Licitación
+  <!-- ══════════════════ CONTENIDO PRINCIPAL ══════════════════ -->
+  <div class="gm-content">
+
+    <!-- TOP BAR -->
+    <header class="gm-topbar">
+      <div class="gm-topbar__left">
+        <!-- Buscador -->
+        <div class="gm-topbar__search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder="Buscar licitación, proveedor…" />
+        </div>
+      </div>
+      <div class="gm-topbar__right">
+        <button class="gm-topbar__btn" (click)="nueva.abrir()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nueva Licitación
         </button>
+        <!-- Avatar -->
+        <div class="gm-avatar" (click)="verPerfil()" style="cursor: pointer;" title="Ver perfil institucional / Cerrar sesión">
+          <div class="gm-avatar__circle">{{ inicialesUsuario }}</div>
+          <div class="gm-avatar__info">
+            <span class="gm-avatar__name">{{ nombreUsuario }}</span>
+            <span class="gm-avatar__role">{{ rolUsuario }}</span>
+          </div>
+        </div>
       </div>
-      <app-nueva-licitacion #nueva (creada)="onLicitacionCreada($event)"></app-nueva-licitacion>
+    </header>
 
-      <!-- Selector de solicitud -->
-      <div class="selector-row" *ngIf="solicitudes.length">
-        <label for="sel-solicitud">Solicitud a evaluar:</label>
-        <select id="sel-solicitud" [value]="solicitudActivaId"
-          (change)="cambiarSolicitud(sel.value)" #sel>
-          <option *ngFor="let s of solicitudes" [value]="s.id">{{ s.titulo }}</option>
-        </select>
+    <!-- NUEVA LICITACIÓN (overlay/drawer) -->
+    <app-nueva-licitacion #nueva (creada)="onLicitacionCreada($event)"></app-nueva-licitacion>
+
+    <!-- PÁGINA PRINCIPAL -->
+    <main class="gm-page">
+
+      <!-- Cargando -->
+      <div *ngIf="cargando" class="ea-loading">
+        <svg class="ea-spinner" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.2"/>
+          <path d="M12 2a10 10 0 0 1 10 10"/>
+        </svg>
+        <span>Cargando datos de evaluación…</span>
       </div>
 
-      <!-- Pestañas -->
-      <div class="tabs">
-        <button class="tab" [class.tab-active]="pestanaActiva === 'evaluacion'"
-          (click)="cambiarPestana('evaluacion')">Comparador multicriterio</button>
-        <button class="tab" [class.tab-active]="pestanaActiva === 'contratos'"
-          (click)="cambiarPestana('contratos')">Contratos ({{ contratos.length }})</button>
-      </div>
+      <ng-container *ngIf="!cargando">
 
-      <!-- ==================== PESTAÑA EVALUACIÓN ==================== -->
-      <div *ngIf="pestanaActiva === 'evaluacion'">
-        <div *ngIf="!solicitudActiva" class="estado-vacio">
-          No hay solicitudes registradas. Publica solicitudes en Supabase para comenzar.
+        <!-- ── BREADCRUMB ── -->
+        <div class="ea-breadcrumb">
+          <span class="ea-breadcrumb__item">LICITACIÓN ACTIVA</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="ea-breadcrumb__item ea-breadcrumb__item--code">{{ codigoLicitacion }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="ea-breadcrumb__badge ea-breadcrumb__badge--eval">
+            <span class="ea-dot ea-dot--blue"></span>
+            En Evaluación
+          </span>
         </div>
 
-        <ng-container *ngIf="solicitudActiva">
-          <div class="solicitud-head">
-            <span class="chip">{{ solicitudActiva.categoria ? solicitudActiva.categoria.nombre : '—' }}</span>
-            <h2>{{ solicitudActiva.titulo }}</h2>
-            <p class="muted">{{ solicitudActiva.descripcion }}</p>
-            <p class="meta">
-              Presupuesto referencial: <b class="mono">S/ {{ formatearMoneda(solicitudActiva.presupuesto_referencial) }}</b>
-              · Cierre: <span class="mono">{{ solicitudActiva.fecha_limite }}</span>
-              · Estado: <b>{{ etiquetaEstadoSolicitud(solicitudActiva.estado) }}</b>
+        <!-- ── TÍTULO Y SUBTÍTULO ── -->
+        <div class="ea-page-header">
+          <div class="ea-page-header__left">
+            <h1 class="ea-page-title">Evaluación y Adjudicación Multicriterio</h1>
+            <p class="ea-page-subtitle" *ngIf="solicitudActiva">
+              {{ solicitudActiva.descripcion ?? 'Proceso de evaluación multicriterio AHP para la solicitud activa de cotización.' }}
             </p>
           </div>
-
-          <div *ngIf="propuestas.length === 0" class="estado-vacio">
-            Esta solicitud aún no tiene propuestas recibidas.
-          </div>
-
-          <ng-container *ngIf="propuestas.length > 0">
-            <!-- Tarjetas de métricas -->
-            <div class="stats-grid">
-              <div class="stat-card best">
-                <h4>Mejor puntaje</h4>
-                <p class="stat-value mono">{{ mejorPuntaje.toFixed(2) }}<small>/100</small></p>
-              </div>
-              <div class="stat-card">
-                <h4>Propuestas</h4>
-                <p class="stat-value mono">{{ propuestas.length }}</p>
-              </div>
-              <div class="stat-card">
-                <h4>Proveedores</h4>
-                <p class="stat-value mono">{{ totalProveedores }}</p>
-              </div>
-              <div class="stat-card">
-                <h4>Presupuesto referencial</h4>
-                <p class="stat-value mono small">S/ {{ formatearMoneda(solicitudActiva.presupuesto_referencial) }}</p>
-              </div>
-            </div>
-
-            <!-- Recomendación destacada -->
-            <div class="recomendacion-card">
-              <div class="reco-head">
-                <span class="reco-badge">
-                  <span class="material-symbols-rounded icon-sm">verified</span>
-                  Recomendación automática
-                </span>
-                <p class="reco-score mono">{{ mejorPuntaje.toFixed(2) }}<small>/100</small></p>
-              </div>
-              <h3>{{ ganadora?.propuesta?.proveedor?.razon_social }}</h3>
-              <p class="reco-text">{{ recomendacion }}</p>
-              <button class="btn btn-primary" (click)="adjudicar()"
-                [disabled]="adjudicando || !ganadora || solicitudYaAdjudicada"
-                [class.btn-disabled-success]="solicitudYaAdjudicada">
-                <span class="material-symbols-rounded icon-sm">
-                  {{ solicitudYaAdjudicada ? 'check_circle' : 'workspaces' }}
-                </span>
-                {{ adjudicando ? 'Generando contrato…' : solicitudYaAdjudicada ? 'Contrato ya generado' : 'Adjudicar y generar contrato' }}
-              </button>
-            </div>
-
-            <!-- Ranking Top 3 -->
-            <div class="ranking-section">
-              <div class="section-title-row">
-                <h3>Ranking Top 3</h3>
-                <button class="btn btn-ghost" (click)="reevaluar()" [disabled]="evaluando || propuestas.length < 2">
-                  <span class="material-symbols-rounded icon-sm">refresh</span>
-                  {{ evaluando ? 'Evaluando…' : 'Recalcular y guardar' }}
-                </button>
-              </div>
-
-              <div class="top3-grid">
-                <div class="top-card" *ngFor="let r of resultados | slice:0:3"
-                  [class.top-ganador]="r.posicion === 1">
-                  <span class="top-puesto mono">Puesto {{ r.posicion | number:'2.0-0' }}</span>
-                  <h4>{{ r.propuesta.proveedor?.razon_social }}</h4>
-                  <p class="top-monto mono">S/ {{ formatearMoneda(r.propuesta.monto_cotizado) }}
-                    · {{ r.propuesta.tiempo_entrega_dias }} días</p>
-                  <p class="top-score mono">{{ r.puntajeFinal.toFixed(2) }}<small>/100</small></p>
-                  <div class="barras">
-                    <div class="barra">
-                      <span>Costo</span>
-                      <div class="barra-fondo"><div class="barra-llena costo" [style.width.%]="r.puntajes.costo"></div></div>
-                      <em class="mono">{{ r.puntajes.costo.toFixed(0) }}</em>
-                    </div>
-                    <div class="barra">
-                      <span>Experiencia</span>
-                      <div class="barra-fondo"><div class="barra-llena exp" [style.width.%]="r.puntajes.experiencia"></div></div>
-                      <em class="mono">{{ r.puntajes.experiencia.toFixed(0) }}</em>
-                    </div>
-                    <div class="barra">
-                      <span>Disponibilidad</span>
-                      <div class="barra-fondo"><div class="barra-llena disp" [style.width.%]="r.puntajes.disponibilidad"></div></div>
-                      <em class="mono">{{ r.puntajes.disponibilidad.toFixed(0) }}</em>
-                    </div>
-                    <div class="barra">
-                      <span>Histórico</span>
-                      <div class="barra-fondo"><div class="barra-llena hist" [style.width.%]="r.puntajes.historico"></div></div>
-                      <em class="mono">{{ r.puntajes.historico.toFixed(0) }}</em>
-                    </div>
-                  </div>
-                  <span class="chip-top3" *ngIf="r.esTop3">TOP {{ r.posicion | number:'2.0-0' }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Comparador completo -->
-            <div class="comparador-section">
-              <h3>Comparador de propuestas</h3>
-              <div class="tabla-wrap">
-                <table class="tabla">
-                  <thead>
-                    <tr>
-                      <th>#</th><th>Proveedor</th><th>Monto</th><th>Entrega</th>
-                      <th>Costo</th><th>Exp.</th><th>Disp.</th><th>Hist.</th>
-                      <th>Final</th><th>Top 3</th><th>Evaluado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let r of resultados">
-                      <td class="mono"><b>{{ r.posicion | number:'2.0-0' }}</b></td>
-                      <td>{{ r.propuesta.proveedor?.razon_social }}</td>
-                      <td class="mono">S/ {{ formatearMoneda(r.propuesta.monto_cotizado) }}</td>
-                      <td class="mono">{{ r.propuesta.tiempo_entrega_dias }} d</td>
-                      <td class="mono">{{ r.puntajes.costo.toFixed(1) }}</td>
-                      <td class="mono">{{ r.puntajes.experiencia.toFixed(1) }}</td>
-                      <td class="mono">{{ r.puntajes.disponibilidad.toFixed(1) }}</td>
-                      <td class="mono">{{ r.puntajes.historico.toFixed(1) }}</td>
-                      <td><b class="final-score mono">{{ r.puntajeFinal.toFixed(2) }}</b></td>
-                      <td><span class="chip-top3" *ngIf="r.esTop3">TOP 3</span><span class="text-muted" *ngIf="!r.esTop3">—</span></td>
-                      <td><span class="text-muted">{{ (evaluacionFecha(r.propuesta.id) | date:'short') || 'Sin guardar' }}</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <p class="nota">Criterios ponderados · Costo 35% · Experiencia 25% · Disponibilidad/Tiempo 20% · Evaluación histórica 20%.</p>
-            </div>
-          </ng-container>
-        </ng-container>
-      </div>
-
-      <!-- ==================== PESTAÑA CONTRATOS ==================== -->
-      <div *ngIf="pestanaActiva === 'contratos'">
-        <div class="comparador-section">
-          <h3>Contratos vigentes e historial</h3>
-          <div class="tabla-wrap" *ngIf="contratos.length">
-            <table class="tabla">
-              <thead>
-                <tr>
-                  <th>Contrato</th><th>Proveedor</th><th>Licitación</th><th>Monto</th>
-                  <th>Inicio</th><th>Fin</th><th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let c of contratos">
-                  <td class="text-muted mono">{{ c.id }}</td>
-                  <td><b>{{ c.propuesta?.proveedor?.razon_social ?? '—' }}</b></td>
-                  <td>{{ c.propuesta?.solicitud?.titulo ?? '—' }}</td>
-                  <td class="mono">S/ {{ formatearMoneda(c.monto_total) }}</td>
-                  <td class="mono">{{ c.fecha_inicio }}</td>
-                  <td class="mono">{{ c.fecha_fin }}</td>
-                  <td>
-                    <span class="badge"
-                      [class.badge-vigente]="c.estado === 'vigente'"
-                      [class.badge-culminado]="c.estado === 'culminado'"
-                      [class.badge-cancelado]="c.estado === 'cancelado'">
-                      {{ etiquetaContrato[c.estado] }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="estado-vacio" *ngIf="!contratos.length">
-            Aún no hay contratos generados. Adjudica una propuesta desde la pestaña “Comparador multicriterio”.
+          <!-- SELECTOR + HISTORIAL -->
+          <div class="ea-selector-row" *ngIf="solicitudes.length">
+            <select class="ea-select" [value]="solicitudActivaId" (change)="cambiarSolicitud(sel.value)" #sel>
+              <option *ngFor="let s of solicitudes" [value]="s.id">
+                {{ s.titulo.startsWith('LIC-') ? s.titulo : ('LIC-2025-' + (s.id | slice:0:3 | uppercase) + ': ' + s.titulo) }}
+              </option>
+            </select>
+            <button class="ea-btn ea-btn--ghost" (click)="abrirHistorial()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Historial
+            </button>
           </div>
         </div>
-      </div>
-    </ng-container>
-  </main>
+
+        <!-- ── STATS ROW (4 mini-cards) ── -->
+        <div class="ea-stats-row" *ngIf="solicitudActiva">
+          <!-- Presupuesto -->
+          <div class="ea-stat-card">
+            <div class="ea-stat-card__icon ea-stat-card__icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div class="ea-stat-card__body">
+              <span class="ea-stat-card__label">PRESUPUESTO ASIGNADO</span>
+              <span class="ea-stat-card__value ea-mono">S/ {{ formatearMoneda(solicitudActiva.presupuesto_referencial) }}</span>
+              <span class="ea-stat-card__sub">Techo presupuestal Capex Q1</span>
+            </div>
+          </div>
+          <!-- Ofertas -->
+          <div class="ea-stat-card">
+            <div class="ea-stat-card__icon ea-stat-card__icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="ea-stat-card__body">
+              <span class="ea-stat-card__label">OFERTAS RECIBIDAS</span>
+              <span class="ea-stat-card__value ea-mono">{{ propuestas.length }}</span>
+              <span class="ea-stat-card__sub ea-stat-card__sub--green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;display:inline;margin-right:3px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                100% RUC activos en SUNAT
+              </span>
+            </div>
+          </div>
+          <!-- Fecha de dictamen -->
+          <div class="ea-stat-card">
+            <div class="ea-stat-card__icon ea-stat-card__icon--amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div class="ea-stat-card__body">
+              <span class="ea-stat-card__label">FECHA DE DICTAMEN</span>
+              <span class="ea-stat-card__value ea-mono">{{ solicitudActiva.fecha_limite ?? '—' }}</span>
+              <span class="ea-stat-card__sub ea-stat-card__sub--amber">Cierre en 48 horas hábiles</span>
+            </div>
+          </div>
+          <!-- Algoritmo -->
+          <div class="ea-stat-card">
+            <div class="ea-stat-card__icon ea-stat-card__icon--purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="ea-stat-card__body">
+              <span class="ea-stat-card__label">ALGORITMO DECISIONAL</span>
+              <span class="ea-stat-card__value" style="font-size:1rem;font-weight:700;">AHP Saaty v2.4</span>
+              <span class="ea-stat-card__sub">Consistencia CR: 0.04 (&lt;0.10)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PESTAÑAS ── -->
+        <div class="ea-tabs">
+          <button class="ea-tab" [class.ea-tab--active]="pestanaActiva === 'evaluacion'"
+            (click)="cambiarPestana('evaluacion')">
+            Comparador Multicriterio (AHP)
+            <span class="ea-tab__badge">{{ resultados.length }} filas</span>
+          </button>
+          <button class="ea-tab" [class.ea-tab--active]="pestanaActiva === 'contratos'"
+            (click)="cambiarPestana('contratos')">
+            Contratos Vigentes
+            <span class="ea-tab__badge">{{ contratos.length }}</span>
+          </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════
+             PESTAÑA: COMPARADOR MULTICRITERIO (AHP)
+             ═══════════════════════════════════════════ -->
+        <div *ngIf="pestanaActiva === 'evaluacion'">
+
+          <!-- Sin solicitud -->
+          <div *ngIf="!solicitudActiva" class="ea-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            No hay solicitudes registradas. Publica solicitudes en Supabase para comenzar.
+          </div>
+
+          <ng-container *ngIf="solicitudActiva">
+
+            <!-- FILA DE PONDERACIONES -->
+            <div class="ea-ponderaciones-row">
+              <div class="ea-ponderaciones-chips">
+                <span class="ea-pondchip ea-pondchip--blue">
+                  <span class="ea-dot ea-dot--blue"></span>Costo Financiero 35%
+                </span>
+                <span class="ea-pondchip ea-pondchip--green">
+                  <span class="ea-dot ea-dot--green"></span>Experiencia Hotelera 25%
+                </span>
+                <span class="ea-pondchip ea-pondchip--amber">
+                  <span class="ea-dot ea-dot--amber"></span>Tiempo de Respuesta 20%
+                </span>
+                <span class="ea-pondchip ea-pondchip--purple">
+                  <span class="ea-dot ea-dot--purple"></span>Score Histórico SLA 20%
+                </span>
+                <a class="ea-link-ajustar" routerLink="/configuracion">Ajustar Ponderaciones →</a>
+              </div>
+              <span class="ea-pondchip ea-pondchip--green-pill">
+                <span class="ea-dot ea-dot--green"></span>Matriz normalizada en tiempo real
+              </span>
+            </div>
+
+            <!-- Sin propuestas -->
+            <div *ngIf="propuestas.length === 0" class="ea-empty">
+              Esta solicitud aún no tiene propuestas recibidas.
+            </div>
+
+            <ng-container *ngIf="propuestas.length > 0">
+
+              <!-- ── CARD RECOMENDACIÓN AHP ── -->
+              <div class="ea-recomend-card" *ngIf="ganadora">
+                <div class="ea-recomend-card__inner">
+                  <!-- CUERPO IZQUIERDO -->
+                  <div class="ea-recomend-card__body">
+                    <div class="ea-recomend-card__badge-row">
+                      <span class="ea-recomend-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Recomendación del Algoritmo AHP · <strong>DICTAMEN PRELIMINAR</strong>
+                      </span>
+                    </div>
+                    <h2 class="ea-recomend-card__proveedor">
+                      {{ ganadora.propuesta.proveedor?.razon_social ?? '—' }}
+                    </h2>
+                    <p class="ea-recomend-card__ruc ea-mono">
+                      RUC: {{ ganadora.propuesta.proveedor?.ruc ?? '—' }}
+                    </p>
+                    <p class="ea-recomend-card__justif">
+                      {{ recomendacion }}
+                    </p>
+
+                    <!-- Mini métricas -->
+                    <div class="ea-recomend-minis">
+                      <div class="ea-mini-metric">
+                        <span class="ea-mini-metric__label">Oferta Económica</span>
+                        <span class="ea-mini-metric__value ea-mono">S/ {{ formatearMoneda(ganadora.propuesta.monto_cotizado) }}</span>
+                      </div>
+                      <div class="ea-mini-metric">
+                        <span class="ea-mini-metric__label">Tiempo de Intervención</span>
+                        <span class="ea-mini-metric__value ea-mono">{{ ganadora.propuesta.tiempo_entrega_dias }} días</span>
+                      </div>
+                      <div class="ea-mini-metric">
+                        <span class="ea-mini-metric__label">Cumplimiento Técnico</span>
+                        <span class="ea-mini-metric__value ea-mono">{{ ganadora.puntajes.disponibilidad.toFixed(0) }}/100</span>
+                      </div>
+                      <div class="ea-mini-metric">
+                        <span class="ea-mini-metric__label">SLA Histórico Prev.</span>
+                        <span class="ea-mini-metric__value ea-mono">{{ ganadora.puntajes.historico.toFixed(0) }}/100</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- COLUMNA DERECHA: PUNTAJE GLOBAL -->
+                  <div class="ea-recomend-card__score-col">
+                    <span class="ea-recomend-card__score-label">PUNTAJE PONDERADO GLOBAL</span>
+                    <div class="ea-recomend-card__score-big">
+                      <span class="ea-mono ea-score-num">{{ mejorPuntaje.toFixed(2) }}</span>
+                      <span class="ea-score-denom">/100</span>
+                    </div>
+                    <div class="ea-recomend-card__score-delta" *ngIf="resultados.length > 1">
+                      +{{ (mejorPuntaje - (resultados[1]?.puntajeFinal ?? 0)).toFixed(2) }} pts sobre el 2° puesto
+                    </div>
+                    <button class="ea-btn ea-btn--primary ea-btn--lg"
+                      (click)="adjudicar()"
+                      [disabled]="adjudicando || !ganadora || solicitudYaAdjudicada">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      {{ adjudicando ? 'Generando contrato…' : solicitudYaAdjudicada ? 'Contrato ya generado' : 'Adjudicar Contrato Directo' }}
+                    </button>
+                    <p class="ea-recomend-card__helper">Genera contrato borrador y bloquea licitación</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── TABLA RANKING COMPLETA ── -->
+              <div class="ea-ranking-card">
+                <div class="ea-ranking-card__header">
+                  <h3 class="ea-ranking-card__title">Ranking de Proveedores — Evaluación AHP</h3>
+                  <button class="ea-btn ea-btn--ghost" (click)="reevaluar()"
+                    [disabled]="evaluando || propuestas.length < 2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
+                      <polyline points="23 4 23 10 17 10"/>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    {{ evaluando ? 'Evaluando…' : 'Recalcular y guardar' }}
+                  </button>
+                </div>
+
+                <div class="ea-tabla-wrap">
+                  <table class="ea-tabla">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Proveedor / RUC / Ciudad</th>
+                        <th>Monto (S/)</th>
+                        <th>Plazo</th>
+                        <th>Costo</th>
+                        <th>Exp</th>
+                        <th>Disp</th>
+                        <th>Hist</th>
+                        <th>FINAL</th>
+                        <th>Elegibilidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let r of resultados"
+                        [class.ea-row--winner]="r.posicion === 1"
+                        [class.ea-row--second]="r.posicion === 2">
+                        <td class="ea-mono ea-rank-num">{{ r.posicion }}</td>
+                        <td>
+                          <div class="ea-prov-cell">
+                            <span class="ea-prov-cell__name">{{ r.propuesta.proveedor?.razon_social ?? '—' }}</span>
+                            <span class="ea-prov-cell__ruc ea-mono">{{ r.propuesta.proveedor?.ruc ?? '—' }}</span>
+                          </div>
+                        </td>
+                        <td class="ea-mono">S/ {{ formatearMoneda(r.propuesta.monto_cotizado) }}</td>
+                        <td class="ea-mono">{{ r.propuesta.tiempo_entrega_dias }} d</td>
+                        <td class="ea-mono">{{ r.puntajes.costo.toFixed(1) }}</td>
+                        <td class="ea-mono">{{ r.puntajes.experiencia.toFixed(1) }}</td>
+                        <td class="ea-mono">{{ r.puntajes.disponibilidad.toFixed(1) }}</td>
+                        <td class="ea-mono">{{ r.puntajes.historico.toFixed(1) }}</td>
+                        <td><strong class="ea-mono ea-final-score">{{ r.puntajeFinal.toFixed(2) }}</strong></td>
+                        <td>
+                          <span class="ea-eligbadge ea-eligbadge--green" *ngIf="r.posicion === 1">
+                            <span class="ea-dot ea-dot--green"></span>Elegible (Ganador)
+                          </span>
+                          <span class="ea-eligbadge ea-eligbadge--amber" *ngIf="r.posicion === 2">
+                            Segundo Lugar
+                          </span>
+                          <span class="ea-eligbadge ea-eligbadge--red" *ngIf="r.posicion === 3 && r.propuesta.tiempo_entrega_dias > 30">
+                            Observado por plazo
+                          </span>
+                          <span class="ea-eligbadge ea-eligbadge--gray" *ngIf="r.posicion > 3 || (r.posicion === 3 && r.propuesta.tiempo_entrega_dias <= 30)">
+                            Puntaje Insuficiente
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="ea-table-footer">
+                  <div class="ea-table-note">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Cálculo realizado por matriz recíproca · Vector de Prioridad Autovalor &lambda;max = 4.08
+                  </div>
+                  <div class="ea-table-actions">
+                    <button type="button" class="ea-btn-export" (click)="exportarMatriz()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Exportar Matriz (Excel/CSV)
+                    </button>
+                    <button type="button" class="ea-btn-export" (click)="descargarDictamen()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                      Descargar Dictamen Técnico (PDF)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </ng-container>
+          </ng-container>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             PESTAÑA: CONTRATOS VIGENTES
+             ═══════════════════════════════════ -->
+        <div *ngIf="pestanaActiva === 'contratos'">
+          <div class="ea-ranking-card">
+            <div class="ea-ranking-card__header">
+              <h3 class="ea-ranking-card__title">Contratos Vigentes e Historial</h3>
+            </div>
+
+            <div class="ea-tabla-wrap" *ngIf="contratos.length">
+              <table class="ea-tabla">
+                <thead>
+                  <tr>
+                    <th>Contrato</th>
+                    <th>Proveedor</th>
+                    <th>Licitación</th>
+                    <th>Monto</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of contratos">
+                    <td class="ea-mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:0.75rem;">
+                      {{ c.id }}
+                    </td>
+                    <td><strong>{{ c.propuesta?.proveedor?.razon_social ?? '—' }}</strong></td>
+                    <td>{{ c.propuesta?.solicitud?.titulo ?? '—' }}</td>
+                    <td class="ea-mono">S/ {{ formatearMoneda(c.monto_total) }}</td>
+                    <td class="ea-mono">{{ c.fecha_inicio }}</td>
+                    <td class="ea-mono">{{ c.fecha_fin }}</td>
+                    <td>
+                      <span class="ea-eligbadge"
+                        [class.ea-eligbadge--green]="c.estado === 'vigente'"
+                        [class.ea-eligbadge--gray]="c.estado === 'culminado'"
+                        [class.ea-eligbadge--red]="c.estado === 'cancelado'">
+                        {{ etiquetaContrato[c.estado] }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="ea-empty" *ngIf="!contratos.length">
+              Aún no hay contratos generados. Adjudica una propuesta desde la pestaña "Comparador Multicriterio".
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+    </main>
+  </div>
 </div>

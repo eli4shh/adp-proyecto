@@ -5,18 +5,20 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { from } from 'rxjs';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../core/services/auth.service';
-import { AuthNavComponent } from '../auth-nav/auth-nav';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AuthNavComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
 export class LoginComponent {
   form!: FormGroup;
   enviando = false;
+  mostrarPassword = false;
+  errorMsg = '';
 
   constructor(
     private fb: FormBuilder,
@@ -68,13 +70,8 @@ export class LoginComponent {
       },
       error: (err: Error) => {
         this.enviando = false;
-        Swal.close();
-        Swal.fire({
-          icon: 'error',
-          title: 'No se pudo iniciar sesión',
-          text: err?.message ?? 'Verifica tus credenciales e inténtalo nuevamente.',
-          confirmButtonText: 'Reintentar'
-        });
+        this.errorMsg = err?.message ?? 'Credenciales incorrectas. Verifica e intenta nuevamente.';
+        setTimeout(() => { this.errorMsg = ''; }, 5000);
       }
     });
   }

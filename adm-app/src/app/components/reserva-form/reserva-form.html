@@ -1,139 +1,437 @@
-<div class="page-container">
-  <!-- HEADER -->
-  <header class="corp-header">
-    <div class="header-left">
-      <span class="corp-brand"><span class="material-symbols-rounded">contract</span></span>
-      <h1>Registro y Postulación de Proveedores</h1>
+<!-- ═══════════════════════════════════════════════════════════════════
+     Portal de Proveedores Oficial — Grand Marina (Stitch UI)
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="rf-page">
+
+  <!-- ── TOP BAR HEADER ── -->
+  <header class="rf-topbar">
+    <div class="rf-topbar__brand">
+      <div class="rf-brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="3"/>
+          <line x1="12" y1="8" x2="12" y2="21"/>
+          <path d="M5 12H2a10 10 0 0 0 20 0h-3"/>
+        </svg>
+      </div>
+      <div class="rf-brand-text">
+        <span class="rf-brand-title">Grand Marina Resort &amp; Convention Center</span>
+        <span class="rf-brand-sub">PORTAL DE PROVEEDORES OFICIAL</span>
+      </div>
     </div>
-    <nav class="header-nav">
-      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
-      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
-      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
-    </nav>
-    <app-auth-nav></app-auth-nav>
+
+    <div class="rf-topbar__actions">
+      <span class="rf-badge-open">
+        <span class="rf-dot-green"></span>
+        LICITACIONES PÚBLICAS ABIERTAS
+      </span>
+      <a routerLink="/login" class="rf-btn-login">
+        Acceso Personal Interno
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </a>
+    </div>
   </header>
 
-  <div class="form-wrapper">
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="postulacion-card">
-      <div class="form-header">
-        <h1 class="form-title">Registro y Postulación de Proveedores</h1>
-        <p class="text-muted">Selecciona una licitación abierta y envía tu propuesta técnica y económica.</p>
+  <!-- ── MAIN WRAPPER (CENTERED CARD) ── -->
+  <main class="rf-main">
+    <div class="rf-card">
+
+      <!-- CARD HEADER / META -->
+      <div class="rf-card__meta-bar">
+        <div class="rf-secure-tag">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Recepción Segura de Pliegos B2B
+        </div>
+        <div class="rf-expediente-badge">
+          EXPEDIENTE: <strong>GMR-PROC-2025</strong>
+        </div>
       </div>
 
-      <div *ngIf="cargando" class="estado-vacio">Cargando solicitudes…</div>
+      <!-- PAGE TITLE BLOCK -->
+      <div class="rf-title-block">
+        <span class="rf-chip-convocatoria">
+          <span class="rf-dot-blue"></span>
+          CONVOCATORIA PÚBLICA 2025
+        </span>
+        <h1 class="rf-title">Postulación y Cotización de Servicios Externos</h1>
+        <p class="rf-subtitle">Complete la propuesta técnica y económica para participar en la licitación del Grand Marina Resort.</p>
+      </div>
 
-      <!-- 1. Licitación -->
-      <section class="form-section">
-        <h3 class="section-header">01 · Licitación / Solicitud</h3>
-        <div class="field full">
-          <label>Solicitud abierta *</label>
-          <select formControlName="solicitud_id">
-            <option value="">— Selecciona una solicitud —</option>
-            <option *ngFor="let s of solicitudes" [value]="s.id">
-              {{ s.titulo }} · S/ {{ s.presupuesto_referencial | number:'1.0-2' }} · {{ categoriaNombre(s.categoria_id) }}
-            </option>
-          </select>
-          <small class="text-danger" *ngIf="f['solicitud_id'].invalid && f['solicitud_id'].touched">
-            Debes elegir una solicitud a la cual postular.
-          </small>
-          <small class="text-muted" *ngIf="!cargando && solicitudes.length === 0">
-            No hay solicitudes abiertas en este momento. Vuelve pronto.
-          </small>
-        </div>
-        <div class="solicitud-info" *ngIf="solicitudSeleccionada">
-          <span class="chip">{{ categoriaNombre(solicitudSeleccionada.categoria_id) }}</span>
-          <p class="desc">{{ solicitudSeleccionada.descripcion }}</p>
-          <p class="muted">
-            Presupuesto referencial:
-            <strong class="mono">S/ {{ solicitudSeleccionada.presupuesto_referencial | number:'1.2-2' }}</strong>
-            · Cierre: <strong class="mono">{{ solicitudSeleccionada.fecha_limite }}</strong>
-          </p>
-        </div>
-      </section>
+      <!-- FORMULARIO REACTIVO ANGULAR -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="rf-form" novalidate>
 
-      <!-- 2. Proveedor -->
-      <section class="form-section">
-        <h3 class="section-header">02 · Datos del proveedor</h3>
-        <div class="input-group">
-          <div class="field">
-            <label>RUC *</label>
-            <input type="text" formControlName="ruc" placeholder="11 dígitos" maxlength="11">
-            <small class="text-danger" *ngIf="f['ruc'].errors?.['required'] && f['ruc'].touched">Requerido.</small>
-            <small class="text-danger" *ngIf="f['ruc'].errors?.['pattern'] && f['ruc'].touched">El RUC debe tener 11 dígitos.</small>
+        <!-- ═══════════════════════════════════════════════
+             PASO 1: SELECCIÓN DE LICITACIÓN
+             ═══════════════════════════════════════════════ -->
+        <section class="rf-section">
+          <div class="rf-section__header">
+            <div class="rf-section__title-group">
+              <span class="rf-step-circle">A</span>
+              <h2 class="rf-section__title">Selección de Licitación</h2>
+            </div>
+            <span class="rf-step-tag">PASO 1 DE 3</span>
           </div>
-          <div class="field">
-            <label>Razón social *</label>
-            <input type="text" formControlName="razon_social" placeholder="Ej: AquaClean S.A.C.">
-            <small class="text-danger" *ngIf="f['razon_social'].invalid && f['razon_social'].touched">Requerido.</small>
-          </div>
-        </div>
-        <div class="input-group">
-          <div class="field">
-            <label>Persona de contacto *</label>
-            <input type="text" formControlName="nombre_contacto" placeholder="Nombre del representante">
-            <small class="text-danger" *ngIf="f['nombre_contacto'].invalid && f['nombre_contacto'].touched">Requerido.</small>
-          </div>
-          <div class="field">
-            <label>Teléfono *</label>
-            <input type="text" formControlName="telefono" placeholder="+51 999 999 999">
-            <small class="text-danger" *ngIf="f['telefono'].invalid && f['telefono'].touched">Ingresa un teléfono válido.</small>
-          </div>
-        </div>
-        <div class="input-group">
-          <div class="field">
-            <label>Correo electrónico *</label>
-            <input type="email" formControlName="email" placeholder="empresa@correo.com">
-            <small class="text-danger" *ngIf="f['email'].invalid && f['email'].touched">Email inválido.</small>
-          </div>
-          <div class="field">
-            <label>Años de experiencia *</label>
-            <input type="number" formControlName="anios_experiencia" min="0" max="60">
-            <small class="text-danger" *ngIf="f['anios_experiencia'].invalid && f['anios_experiencia'].touched">0 – 60 años.</small>
-          </div>
-        </div>
-      </section>
 
-      <!-- 3. Propuesta económica y técnica -->
-      <section class="form-section">
-        <h3 class="section-header">03 · Propuesta económica y técnica</h3>
-        <div class="input-group">
-          <div class="field">
-            <label>Monto cotizado (S/) *</label>
-            <input type="number" formControlName="monto_cotizado" min="1" placeholder="0.00">
-            <small class="text-danger" *ngIf="f['monto_cotizado'].invalid && f['monto_cotizado'].touched">Debe ser mayor a 0.</small>
+          <div class="rf-field">
+            <label class="rf-label" for="solicitud_id">
+              LICITACIÓN ACTIVA REQUERIDA <span class="rf-required">*</span>
+            </label>
+            <div class="rf-select-wrap">
+              <select id="solicitud_id" formControlName="solicitud_id" class="rf-select">
+                <option value="">— Selecciona una licitación activa —</option>
+                <option *ngFor="let s of solicitudes" [value]="s.id">
+                  {{ formatoTituloSolicitud(s) }}
+                </option>
+              </select>
+            </div>
+            <span class="rf-error" *ngIf="f['solicitud_id'].invalid && f['solicitud_id'].touched">
+              Debe seleccionar una licitación a la cual postular.
+            </span>
           </div>
-          <div class="field">
-            <label>Plazo de entrega (días) *</label>
-            <input type="number" formControlName="tiempo_entrega_dias" min="1" max="365">
-            <small class="text-danger" *ngIf="f['tiempo_entrega_dias'].invalid && f['tiempo_entrega_dias'].touched">1 – 365 días.</small>
+
+          <!-- FICHA TÉCNICA RESUMIDA (SOLICITUD SELECCIONADA) -->
+          <div class="rf-ficha" *ngIf="solicitudSeleccionada">
+            <div class="rf-ficha__top">
+              <div class="rf-ficha__title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                Ficha Técnica Resumida de la Licitación
+              </div>
+              <span class="rf-vigencia-badge">
+                <span class="rf-dot-blue"></span>
+                Vigencia Activa
+              </span>
+            </div>
+
+            <div class="rf-ficha__grid">
+              <div class="rf-ficha__col">
+                <span class="rf-ficha__label">PRESUPUESTO REFERENCIAL</span>
+                <span class="rf-ficha__val rf-ficha__val--blue rf-mono">
+                  S/ {{ (solicitudSeleccionada.presupuesto_referencial || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+              <div class="rf-ficha__col">
+                <span class="rf-ficha__label">CATEGORÍA OPERATIVA</span>
+                <span class="rf-ficha__val">
+                  {{ categoriaNombre(solicitudSeleccionada.categoria_id) }}
+                </span>
+              </div>
+              <div class="rf-ficha__col">
+                <span class="rf-ficha__label">FECHA LÍMITE</span>
+                <span class="rf-ficha__val rf-mono">
+                  {{ solicitudSeleccionada.fecha_limite || '28 Mar 2025 · 18:00' }}
+                </span>
+              </div>
+              <div class="rf-ficha__col">
+                <span class="rf-ficha__label">ESTADO PROCESO</span>
+                <span class="rf-ficha__val rf-ficha__val--status">
+                  <span class="rf-dot-blue"></span>
+                  Convocatoria Abierta
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════
+             PASO 2: DATOS DE LA EMPRESA POSTULANTE
+             ═══════════════════════════════════════════════ -->
+        <section class="rf-section">
+          <div class="rf-section__header">
+            <div class="rf-section__title-group">
+              <span class="rf-step-circle">B</span>
+              <h2 class="rf-section__title">Datos de la Empresa Postulante</h2>
+            </div>
+            <span class="rf-step-tag">PASO 2 DE 3</span>
+          </div>
+
+          <div class="rf-grid-2">
+            <!-- RUC -->
+            <div class="rf-field">
+              <div class="rf-label-row">
+                <label class="rf-label" for="ruc">RUC (11 DÍGITOS) <span class="rf-required">*</span></label>
+                <span class="rf-sunat-badge" *ngIf="f['ruc'].valid">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  SUNAT Activo &amp; Habido
+                </span>
+              </div>
+              <div class="rf-input-wrap">
+                <input id="ruc" type="text" formControlName="ruc" maxlength="11" class="rf-input rf-mono"
+                  placeholder="20549281943" />
+                <svg class="rf-input-end-icon" *ngIf="f['ruc'].valid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <span class="rf-error" *ngIf="f['ruc'].invalid && f['ruc'].touched">
+                El RUC debe tener exactamente 11 dígitos numéricos.
+              </span>
+            </div>
+
+            <!-- RAZÓN SOCIAL -->
+            <div class="rf-field">
+              <label class="rf-label" for="razon_social">RAZÓN SOCIAL REGISTRADA <span class="rf-required">*</span></label>
+              <input id="razon_social" type="text" formControlName="razon_social" class="rf-input"
+                placeholder="TermoClima Industrial del Sur S.A.C." />
+              <span class="rf-error" *ngIf="f['razon_social'].invalid && f['razon_social'].touched">
+                Indique la razón social registrada en SUNAT.
+              </span>
+            </div>
+
+            <!-- REPRESENTANTE -->
+            <div class="rf-field">
+              <label class="rf-label" for="nombre_contacto">REPRESENTANTE / CONTACTO TÉCNICO <span class="rf-required">*</span></label>
+              <div class="rf-input-wrap">
+                <svg class="rf-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input id="nombre_contacto" type="text" formControlName="nombre_contacto" class="rf-input rf-input--has-icon"
+                  placeholder="Ing. Carlos Mendoza Alarcón" />
+              </div>
+              <span class="rf-error" *ngIf="f['nombre_contacto'].invalid && f['nombre_contacto'].touched">
+                Campo obligatorio.
+              </span>
+            </div>
+
+            <!-- TELÉFONO -->
+            <div class="rf-field">
+              <label class="rf-label" for="telefono">TELÉFONO DE CONTACTO DIRECTO <span class="rf-required">*</span></label>
+              <div class="rf-input-wrap">
+                <svg class="rf-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                <input id="telefono" type="text" formControlName="telefono" class="rf-input rf-input--has-icon rf-mono"
+                  placeholder="+51 984 321 654" />
+              </div>
+              <span class="rf-error" *ngIf="f['telefono'].invalid && f['telefono'].touched">
+                Ingrese un número telefónico válido.
+              </span>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="rf-field">
+              <label class="rf-label" for="email">CORREO ELECTRÓNICO INSTITUCIONAL <span class="rf-required">*</span></label>
+              <div class="rf-input-wrap">
+                <svg class="rf-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <input id="email" type="email" formControlName="email" class="rf-input rf-input--has-icon"
+                  placeholder="licitaciones@termoclima.pe" />
+              </div>
+              <span class="rf-error" *ngIf="f['email'].invalid && f['email'].touched">
+                Ingrese un correo corporativo válido.
+              </span>
+            </div>
+
+            <!-- AÑOS EXPERIENCIA -->
+            <div class="rf-field">
+              <label class="rf-label" for="anios_experiencia">AÑOS DE EXPERIENCIA RELEVANTE <span class="rf-required">*</span></label>
+              <div class="rf-input-wrap">
+                <svg class="rf-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="6"/>
+                  <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                </svg>
+                <input id="anios_experiencia" type="number" min="0" max="60" formControlName="anios_experiencia"
+                  class="rf-input rf-input--has-icon rf-mono" placeholder="8" />
+              </div>
+              <span class="rf-hint">
+                {{ f['anios_experiencia'].value || 8 }} años de experiencia en sector hotelero/industrial
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════
+             PASO 3: PROPUESTA ECONÓMICA Y TÉCNICA
+             ═══════════════════════════════════════════════ -->
+        <section class="rf-section">
+          <div class="rf-section__header">
+            <div class="rf-section__title-group">
+              <span class="rf-step-circle">C</span>
+              <h2 class="rf-section__title">Propuesta Económica y Técnica</h2>
+            </div>
+            <span class="rf-step-tag">PASO 3 DE 3</span>
+          </div>
+
+          <div class="rf-grid-2">
+            <!-- MONTO OFERTADO -->
+            <div class="rf-field">
+              <label class="rf-label" for="monto_cotizado">MONTO OFERTADO (SIN I.G.V.) <span class="rf-required">*</span></label>
+              <div class="rf-input-prefix-wrap">
+                <span class="rf-prefix-badge">S/</span>
+                <input id="monto_cotizado" type="number" formControlName="monto_cotizado" step="0.01" min="1"
+                  class="rf-input rf-input--prefix rf-mono" placeholder="42,500.00" />
+              </div>
+              <span class="rf-hint rf-hint--success" *ngIf="solicitudSeleccionada?.presupuesto_referencial && f['monto_cotizado'].value">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                  <polyline points="17 6 23 6 23 12"/>
+                </svg>
+                Dentro del margen referencial (Ahorro proyectado de S/ {{ ahorroProyectado | number:'1.2-2' }})
+              </span>
+            </div>
+
+            <!-- PLAZO DE ENTREGA -->
+            <div class="rf-field">
+              <label class="rf-label" for="tiempo_entrega_dias">PLAZO DE ENTREGA / EJECUCIÓN <span class="rf-required">*</span></label>
+              <div class="rf-input-wrap">
+                <svg class="rf-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <input id="tiempo_entrega_dias" type="number" formControlName="tiempo_entrega_dias" min="1" max="365"
+                  class="rf-input rf-input--has-icon rf-mono" placeholder="15" />
+              </div>
+              <span class="rf-hint">Plazo máximo admitido: 20 días calendario</span>
+            </div>
+          </div>
+
+          <!-- RESUMEN EJECUTIVO -->
+          <div class="rf-field" style="margin-top: 1.25rem;">
+            <div class="rf-label-row">
+              <label class="rf-label" for="propuesta_tecnica">RESUMEN EJECUTIVO DEL PLAN TÉCNICO Y EQUIPO <span class="rf-required">*</span></label>
+              <span class="rf-char-counter">118 / 600 caracteres</span>
+            </div>
+            <textarea id="propuesta_tecnica" formControlName="propuesta_tecnica" rows="4" class="rf-textarea"
+              placeholder="Plan de intervención en 3 fases: Diagnóstico termográfico inicial, mantenimiento preventivo de compresores y protocolo 24/7 con repuestos originales."></textarea>
+            <span class="rf-error" *ngIf="f['propuesta_tecnica'].invalid && f['propuesta_tecnica'].touched">
+              Describa su propuesta técnica.
+            </span>
+          </div>
+
+          <!-- EXPEDIENTE TÉCNICO UPLOAD -->
+          <div class="rf-field" style="margin-top: 1.25rem;">
+            <label class="rf-label">EXPEDIENTE TÉCNICO Y COTIZACIÓN DESAGREGADA <span class="rf-required">*</span></label>
+            
+            <div class="rf-upload-box" (dragover)="$event.preventDefault()" (drop)="onArchivoSoltado($event)">
+              <div class="rf-upload-icon-circle">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                  <polyline points="12 12 12 16"/>
+                  <polyline points="9 13 12 10 15 13"/>
+                </svg>
+              </div>
+              <h4 class="rf-upload-title">Arrastre aquí su expediente técnico y propuesta en PDF</h4>
+              <p class="rf-upload-sub">Archivos PDF firmados digitalmente (Capacidad máxima 10 MB)</p>
+              
+              <label class="rf-upload-btn" for="archivo-postulacion-input">
+                Examinar Archivo Local
+                <input id="archivo-postulacion-input" type="file" (change)="onArchivoSeleccionado($event)" accept="application/pdf,image/*" style="display:none;" />
+              </label>
+            </div>
+
+            <!-- FICHA ARCHIVO ADJUNTO VERIFICADO (SOLO SE MUESTRA SI HAY ARCHIVO CARGADO) -->
+            <div class="rf-file-preview" *ngIf="nombreArchivo">
+              <div class="rf-file-preview__left">
+                <div class="rf-pdf-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="rf-file-name">
+                    {{ nombreArchivo }}
+                    <span class="rf-verified-badge">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Verificado
+                    </span>
+                  </div>
+                  <div class="rf-file-meta">{{ tamanoArchivo || '3.4 MB' }} · Hash SHA-256 Validado</div>
+                </div>
+              </div>
+              <div class="rf-file-preview__actions">
+                <button type="button" class="rf-icon-btn" title="Ver documento" (click)="verArchivo()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button type="button" class="rf-icon-btn" title="Eliminar archivo" (click)="eliminarArchivo()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DECLARACIÓN DE INTEGRIDAD -->
+          <div class="rf-declaracion-box">
+            <label class="rf-checkbox-wrap">
+              <input type="checkbox" checked required />
+              <div class="rf-declaracion-text">
+                <strong>Declaración de Integridad y Veracidad</strong>
+                <span>Declaro bajo juramento que la información y montos consignados son fidedignos y conformes a las bases del concurso y a las políticas anticorrupción de Grand Marina Resort.</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- BARRA DE ACCIÓN INFERIOR -->
+          <div class="rf-action-bar">
+            <div class="rf-action-bar__left">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span>Cifrado SSL de 256 bits para propuestas comerciales</span>
+            </div>
+
+            <div class="rf-action-bar__right">
+              <button type="button" class="rf-btn-borrador">
+                Guardar Borrador
+              </button>
+              <button type="submit" class="rf-btn-submit" [disabled]="form.invalid || enviando">
+                {{ enviando ? 'Enviando…' : 'Enviar Propuesta Oficial' }}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+        </section>
+
+      </form>
+
+      <!-- CARD FOOTER / SOPORTE -->
+      <footer class="rf-card__footer">
+        <div class="rf-footer-row">
+          <div class="rf-footer-support">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            ¿Dudas con el pliego? Mesa de Ayuda: <a href="mailto:licitaciones@grandmarinaresort.com">licitaciones@grandmarinaresort.com</a>
+          </div>
+          <div class="rf-footer-time">
+            HORA OFICIAL: UTC-5 (LIMA)
           </div>
         </div>
-        <div class="field full">
-          <label>Propuesta técnica *</label>
-          <textarea formControlName="propuesta_tecnica" rows="3"
-            placeholder="Describe el alcance, personal asignado, entregables, etc."></textarea>
-          <small class="text-danger" *ngIf="f['propuesta_tecnica'].invalid && f['propuesta_tecnica'].touched">Requerido.</small>
-        </div>
-        <div class="field full">
-          <label>Documento de la propuesta (opcional)</label>
-          <input type="file" (change)="onArchivoSeleccionado($event)" accept="application/pdf,image/*" class="file-input">
-          <small class="text-muted">O pega una URL pública del documento</small>
-          <input type="text" formControlName="archivo_url" placeholder="https://drive.google.com/... o archivo adjunto">
-          <span class="adjunto-ok" *ngIf="nombreArchivo">
-            <span class="material-symbols-rounded icon-sm">check_circle</span>
-            <span class="mono">{{ nombreArchivo }}</span>
-          </span>
-        </div>
-      </section>
+      </footer>
 
-      <button type="submit" class="btn btn-primary btn-lg" [disabled]="form.invalid || enviando">
-        <span class="material-symbols-rounded icon-sm">send</span>
-        {{ enviando ? 'Enviando…' : 'Enviar postulación' }}
-      </button>
-    </form>
-  </div>
+    </div>
 
-  <footer class="main-footer">
-    <p>Sistema de Contratación y Evaluación de Servicios Externos · División de Compras</p>
-  </footer>
+    <!-- PIE DE PÁGINA GENERAL -->
+    <div class="rf-page-copyright">
+      <span>© 2025 Grand Marina Resort &amp; Convention Center, Dirección General de Compras &amp; Suministros.</span>
+      <div class="rf-page-links">
+        <a href="javascript:void(0)">Términos de Licitación</a>
+        <a href="javascript:void(0)">Política de Compliance</a>
+        <a href="javascript:void(0)">Contacto de Soporte</a>
+      </div>
+    </div>
+  </main>
+
 </div>

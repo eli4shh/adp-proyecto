@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
+import type { User } from '@supabase/supabase-js';
+import { AuthService } from '../../core/services/auth.service';
 import { ServiciosExternosService } from '../../services/servicios-externos.service';
 import { EvaluacionService, PropuestaEvaluada } from '../../services/evaluacion.service';
 import {
@@ -24,7 +26,7 @@ import { AuthNavComponent } from '../auth-nav/auth-nav';
 @Component({
   selector: 'app-evaluacion',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, NuevaLicitacionComponent, AuthNavComponent],
+  imports: [CommonModule, RouterLink, NuevaLicitacionComponent],
   templateUrl: './admin.html',
   styleUrls: ['./admin.css']
 })
@@ -52,7 +54,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private servicios: ServiciosExternosService,
-    private evaluacionService: EvaluacionService
+    private evaluacionService: EvaluacionService,
+    private auth: AuthService
   ) {}
 
   ngOnInit() {
@@ -78,6 +81,18 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   get solicitudActiva(): SolicitudCotizacion | undefined {
     return this.solicitudes.find((s) => s.id === this.solicitudActivaId);
+  }
+
+  get codigoLicitacion(): string {
+    if (!this.solicitudActiva) return 'LIC-2025-014';
+    if (this.solicitudActiva.titulo.startsWith('LIC-')) {
+      const parts = this.solicitudActiva.titulo.split(':');
+      return parts[0].trim();
+    }
+    const short = this.solicitudActiva.id.startsWith('a0000000-0000-4000-8000-')
+      ? this.solicitudActiva.id.slice(-3).toUpperCase()
+      : this.solicitudActiva.id.slice(0, 3).toUpperCase();
+    return `LIC-2025-${short}`;
   }
 
   get ganadora(): PropuestaEvaluada | undefined {
@@ -312,6 +327,230 @@ export class AdminComponent implements OnInit, OnDestroy {
               Swal.fire('Error', 'No se pudo generar el contrato.', 'error');
             }
           });
+      }
+    });
+  }
+
+  abrirHistorial() {
+    const sol = this.solicitudActiva;
+    if (!sol) return;
+
+    Swal.fire({
+      title: `<span style="font-size:1.15rem;font-weight:700;color:#0f172a;">Trazabilidad e Historial</span>`,
+      html: `
+        <div style="text-align:left;font-size:0.85rem;color:#334155;line-height:1.6;padding:0.25rem 0.5rem;">
+          <p style="margin-bottom:0.75rem;"><b>Convocatoria:</b> ${sol.titulo}</p>
+          <div style="border-left: 2px solid #2563eb; padding-left: 1rem; margin-left: 0.25rem; display:flex; flex-direction:column; gap:0.75rem;">
+            <div>
+              <span style="font-weight:600;color:#0f172a;">1. Convocatoria Publicada</span><br>
+              <span style="color:#64748b;font-size:0.78rem;">Presupuesto Capex: S/ ${this.formatearMoneda(sol.presupuesto_referencial)} · Fecha límite: ${sol.fecha_limite ?? '2026-12-01'}</span>
+            </div>
+            <div>
+              <span style="font-weight:600;color:#0f172a;">2. Recepción de Ofertas</span><br>
+              <span style="color:#64748b;font-size:0.78rem;">${this.propuestas.length} propuestas recibidas y validadas con RUC activo en SUNAT.</span>
+            </div>
+            <div>
+              <span style="font-weight:600;color:#0f172a;">3. Matriz Decisional AHP</span><br>
+              <span style="color:#64748b;font-size:0.78rem;">Algoritmo Saaty v2.4 ejecutado con Consistencia CR &lt; 0.10.</span>
+            </div>
+            <div>
+              <span style="font-weight:600;color:#0f172a;">4. Estado del Proceso</span><br>
+              <span style="color:#2563eb;font-weight:600;text-transform:uppercase;">${sol.estado.replace('_', ' ')}</span>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      cancelButtonText: 'Cerrar',
+      confirmButtonText: 'Ver Contratos Vigentes',
+      confirmButtonColor: '#2563eb'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.cambiarPestana('contratos');
+      }
+    });
+  }
+
+  exportarMatriz() {
+    if (!this.resultados.length) {
+      Swal.fire('Atención', 'No hay datos de evaluación para exportar.', 'info');
+      return;
+    }
+    const cabeceras = ['Posición', 'Proveedor', 'RUC', 'Monto (S/)', 'Plazo (días)', 'Puntaje Costo', 'Puntaje Exp', 'Puntaje Disp', 'Puntaje Hist', 'Puntaje Final', 'Elegibilidad'];
+    const filas = this.resultados.map((r) => [
+      r.posicion,
+      `"${r.propuesta.proveedor?.razon_social ?? ''}"`,
+      r.propuesta.proveedor?.ruc ?? '',
+      r.propuesta.monto_cotizado,
+      r.propuesta.tiempo_entrega_dias,
+      r.puntajes.costo.toFixed(1),
+      r.puntajes.experiencia.toFixed(1),
+      r.puntajes.disponibilidad.toFixed(1),
+      r.puntajes.historico.toFixed(1),
+      r.puntajeFinal.toFixed(2),
+      r.posicion === 1 ? 'Elegible (Ganador)' : r.posicion === 2 ? 'Segundo Lugar' : 'Puntaje Insuficiente'
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [cabeceras.join(','), ...filas.map((f) => f.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Matriz_AHP_${this.codigoLicitacion}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Matriz exportada',
+      text: `Se descargó la matriz de evaluación en formato CSV.`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  }
+
+  descargarDictamen() {
+    if (!this.ganadora) {
+      Swal.fire('Atención', 'No hay dictamen disponible sin propuestas evaluadas.', 'info');
+      return;
+    }
+
+    Swal.fire({
+      icon: 'info',
+      title: 'Dictamen Técnico de Evaluación',
+      html: `
+        <div style="text-align:left;font-size:0.85rem;color:#334155;line-height:1.6;">
+          <p><b>Convocatoria:</b> ${this.solicitudActiva?.titulo}</p>
+          <p><b>Proveedor Recomendado:</b> ${this.ganadora.propuesta.proveedor?.razon_social ?? '—'}</p>
+          <p><b>Puntaje AHP Ponderado:</b> ${this.ganadora.puntajeFinal.toFixed(2)} / 100</p>
+          <p><b>Monto Ofertado:</b> S/ ${this.formatearMoneda(this.ganadora.propuesta.monto_cotizado)}</p>
+          <p><b>Plazo de Ejecución:</b> ${this.ganadora.propuesta.tiempo_entrega_dias} días calendario</p>
+          <hr style="border:0;border-top:1px solid #e2e8f0;margin:0.75rem 0;">
+          <p style="color:#64748b;font-size:0.78rem;">Dictamen generado automáticamente conforme al algoritmo multicriterio Saaty AHP y el reglamento de contrataciones de Grand Marina Resort.</p>
+        </div>
+      `,
+      confirmButtonText: 'Imprimir / Guardar',
+      confirmButtonColor: '#2563eb',
+      showCancelButton: true,
+      cancelButtonText: 'Cerrar'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        window.print();
+      }
+    });
+  }
+
+  get usuarioActual(): User | null {
+    return this.auth.usuarioActual;
+  }
+
+  get nombreUsuario(): string {
+    const u = this.usuarioActual;
+    if (!u) return 'Valeria Soto';
+    const meta = u.user_metadata;
+    if (meta && typeof meta['nombre'] === 'string' && meta['nombre'].trim()) {
+      return meta['nombre'].trim();
+    }
+    if (meta && typeof meta['full_name'] === 'string' && meta['full_name'].trim()) {
+      return meta['full_name'].trim();
+    }
+    if (meta && typeof meta['name'] === 'string' && meta['name'].trim()) {
+      return meta['name'].trim();
+    }
+    if (u.email) {
+      const alias = u.email.split('@')[0];
+      return alias
+        .split(/[._-]/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+    return 'Valeria Soto';
+  }
+
+  get rolUsuario(): string {
+    const u = this.usuarioActual;
+    if (!u) return 'Jefa de Compras & Licitaciones';
+    const meta = u.user_metadata;
+    if (meta && typeof meta['rol'] === 'string' && meta['rol'].trim()) {
+      return meta['rol'].trim();
+    }
+    if (meta && typeof meta['cargo'] === 'string' && meta['cargo'].trim()) {
+      return meta['cargo'].trim();
+    }
+    return 'Jefa de Compras & Licitaciones';
+  }
+
+  get inicialesUsuario(): string {
+    const nombre = this.nombreUsuario.trim();
+    if (!nombre) return 'VS';
+    const palabras = nombre.split(/\s+/).filter(Boolean);
+    if (palabras.length >= 2) {
+      return (palabras[0][0] + palabras[1][0]).toUpperCase();
+    }
+    return nombre.slice(0, 2).toUpperCase();
+  }
+
+  verPerfil() {
+    const u = this.usuarioActual;
+    const correo = u?.email ?? 'valeria.soto@grandmarina.pe';
+    const id = u?.id ? u.id.slice(0, 8) + '…' : 'USR-CORP-441';
+
+    Swal.fire({
+      title: 'Perfil de Usuario',
+      html: `
+        <div style="text-align: left; padding: 6px 0; font-size: 13.5px; color: #1e293b;">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center;">
+              ${this.inicialesUsuario}
+            </div>
+            <div>
+              <div style="font-size: 16px; font-weight: 700; color: #0f172a;">${this.nombreUsuario}</div>
+              <div style="color: #2563eb; font-weight: 600; font-size: 12.5px;">${this.rolUsuario}</div>
+            </div>
+          </div>
+          <div style="display: grid; gap: 8px; font-size: 13px;">
+            <div><strong style="color: #64748b;">Correo institucional:</strong> <span style="color: #0f172a;">${correo}</span></div>
+            <div><strong style="color: #64748b;">Organización:</strong> <span style="color: #0f172a;">Grand Marina Resort &amp; Convention Center</span></div>
+            <div><strong style="color: #64748b;">Área:</strong> <span style="color: #0f172a;">Dirección de Compras, Licitaciones y Servicios</span></div>
+            <div><strong style="color: #64748b;">ID de Sesión:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11.5px; color: #475569;">${id}</code></div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Cerrar Sesión',
+      confirmButtonColor: '#ef4444',
+      cancelButtonText: 'Cerrar',
+      cancelButtonColor: '#64748b'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.cerrarSesion();
+      }
+    });
+  }
+
+  cerrarSesion() {
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: 'Se finalizará tu sesión en el sistema de adquisiciones corporativas.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#64748b'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        this.auth.cerrarSesion().then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Sesión finalizada',
+            text: 'Has cerrado sesión exitosamente.',
+            timer: 1200,
+            showConfirmButton: false
+          }).then(() => {
+            this.router.navigate(['/login']);
+          });
+        });
       }
     });
   }

@@ -1,72 +1,316 @@
-<div class="licitacion-overlay" *ngIf="abierto" (click)="cerrar()">
-  <div class="licitacion-dialogo" role="dialog" aria-modal="true" aria-label="Nueva licitación"
-    (click)="$event.stopPropagation()">
-    <form [formGroup]="form" (ngSubmit)="publicar()" novalidate>
-      <header class="dialogo-head">
-        <h2>Nueva licitación</h2>
-        <button type="button" class="btn-icon-close" aria-label="Cerrar" (click)="cerrar()">
-          <span class="material-symbols-rounded">close</span>
-        </button>
+<!-- ═══════════════════════════════════════════════════════════════════
+     Modal / Drawer: Creación de Nueva Licitación — Grand Marina (Stitch UI)
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="nl-overlay" *ngIf="abierto" (click)="cerrar()">
+  <div class="nl-modal" role="dialog" aria-modal="true" aria-label="Nueva Licitación" (click)="$event.stopPropagation()">
+
+    <form [formGroup]="form" (ngSubmit)="publicar()" novalidate class="nl-form">
+
+      <!-- ── TOP BAR HEADER ── -->
+      <header class="nl-header">
+        <div class="nl-header__left">
+          <div class="nl-breadcrumb">
+            <span>GRAND MARINA</span>
+            <span class="nl-breadcrumb__sep">·</span>
+            <span>ADQUISICIONES</span>
+            <span class="nl-breadcrumb__sep">·</span>
+            <span>NUEVA CONVOCATORIA</span>
+          </div>
+          <h2 class="nl-title">Creación de Nueva Licitación</h2>
+          <p class="nl-subtitle">
+            Defina las especificaciones técnicas, plazos de recepción de ofertas y presupuesto referencial para convocar a proveedores homologados.
+          </p>
+        </div>
+
+        <div class="nl-header__actions">
+          <button type="button" class="nl-btn nl-btn--ghost" (click)="cerrar()">
+            Cancelar
+          </button>
+          <button type="submit" class="nl-btn nl-btn--primary" [disabled]="enviando || form.invalid">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            {{ enviando ? 'Publicando…' : 'Publicar Convocatoria' }}
+          </button>
+          <button type="button" class="nl-btn-close" (click)="cerrar()" aria-label="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
-      <div class="dialogo-body">
-        <div class="field full">
-          <label for="nl-titulo">Título de la Licitación *</label>
-          <input id="nl-titulo" formControlName="titulo" type="text"
-            placeholder="Ej: Servicio de mantenimiento de grupos electrógenos" />
-          <small class="text-danger" *ngIf="f['titulo'].invalid && f['titulo'].touched">
-            Indica el nombre de la licitación.
-          </small>
-        </div>
+      <!-- ── MAIN CONTENT (2 COLUMNS: FORM + PREVIEW) ── -->
+      <div class="nl-content-grid">
 
-        <div class="campo-grid">
-          <div class="field">
-            <label for="nl-categoria">Categoría de Servicio *</label>
-            <select id="nl-categoria" formControlName="categoria_id">
-              <option value="">— Selecciona una categoría —</option>
-              <option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</option>
-            </select>
-            <small class="text-danger" *ngIf="f['categoria_id'].invalid && f['categoria_id'].touched">
-              Elige una categoría.
-            </small>
+        <!-- LEFT COLUMN: FORM SECTIONS -->
+        <div class="nl-sections">
+
+          <!-- SECTION 1: INFORMACIÓN GENERAL -->
+          <div class="nl-section">
+            <div class="nl-section__header">
+              <div class="nl-section__title-wrap">
+                <div class="nl-section__icon nl-section__icon--blue">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="nl-section__title">1. Información General del Requerimiento</h3>
+                  <span class="nl-section__sub">Datos descriptivos y categorización interna del pliego</span>
+                </div>
+              </div>
+              <span class="nl-id-tag">ID: GMR-PROC-2025</span>
+            </div>
+
+            <div class="nl-fields">
+              <!-- Título -->
+              <div class="nl-field">
+                <div class="nl-label-row">
+                  <label for="nl-titulo" class="nl-label">Título u Objeto de la Licitación <span class="nl-required">*</span></label>
+                  <span class="nl-label-hint">Preciso, claro y de carácter contractual</span>
+                </div>
+                <input id="nl-titulo" formControlName="titulo" type="text" class="nl-input"
+                  placeholder="Ej: Servicio Integral de Mantenimiento Preventivo y Químico para Piscinas" />
+                <span class="nl-error" *ngIf="f['titulo'].invalid && f['titulo'].touched">
+                  Indique el título o requerimiento de la licitación.
+                </span>
+              </div>
+
+              <!-- Grid: Categoría + Sede -->
+              <div class="nl-grid-2">
+                <div class="nl-field">
+                  <label for="nl-categoria" class="nl-label">Categoría Operativa <span class="nl-required">*</span></label>
+                  <select id="nl-categoria" formControlName="categoria_id" class="nl-select">
+                    <option value="">— Seleccionar categoría —</option>
+                    <option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</option>
+                  </select>
+                  <span class="nl-error" *ngIf="f['categoria_id'].invalid && f['categoria_id'].touched">
+                    Seleccione una categoría.
+                  </span>
+                </div>
+
+                <div class="nl-field">
+                  <label class="nl-label">Sede / Área Usuaria</label>
+                  <input type="text" class="nl-input" value="Grand Marina Costa Azul · Sede Principal" readonly />
+                </div>
+              </div>
+
+              <!-- Descripción -->
+              <div class="nl-field">
+                <div class="nl-label-row">
+                  <label for="nl-descripcion" class="nl-label">Descripción del Alcance y Especificaciones Técnicas <span class="nl-required">*</span></label>
+                  <span class="nl-label-hint">Términos de Referencia</span>
+                </div>
+                <textarea id="nl-descripcion" formControlName="descripcion" rows="4" class="nl-textarea"
+                  placeholder="El proveedor seleccionado se encargará del suministro de insumos químicos certificados (grado hotelero), calibración semanal de bombas dosificadoras, mantenimiento electromecánico de sala de máquinas y reporte diario de niveles de pH, cloro libre y turbidez en las 5 piscinas recreativas..."></textarea>
+                <span class="nl-error" *ngIf="f['descripcion'].invalid && f['descripcion'].touched">
+                  Describa las especificaciones técnicas del servicio.
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div class="field">
-            <label for="nl-presupuesto">Presupuesto Referencial (S/) *</label>
-            <input id="nl-presupuesto" class="mono" formControlName="presupuesto_referencial"
-              type="number" min="1" step="0.01" placeholder="0.00" />
-            <small class="text-danger"
-              *ngIf="f['presupuesto_referencial'].invalid && f['presupuesto_referencial'].touched">
-              Debe ser mayor a 0.
-            </small>
+          <!-- SECTION 2: PARÁMETROS ECONÓMICOS Y CRONOGRAMA -->
+          <div class="nl-section">
+            <div class="nl-section__header">
+              <div class="nl-section__title-wrap">
+                <div class="nl-section__icon nl-section__icon--green">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="nl-section__title">2. Parámetros Económicos y Cronograma</h3>
+                  <span class="nl-section__sub">Plazos estrictos de convocatoria y tope presupuestal autorizado</span>
+                </div>
+              </div>
+              <span class="nl-audit-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Auditoría Fiscal
+              </span>
+            </div>
+
+            <div class="nl-fields">
+              <div class="nl-grid-2">
+                <div class="nl-field">
+                  <label for="nl-presupuesto" class="nl-label">Presupuesto Referencial Techo (S/ - PEN) <span class="nl-required">*</span></label>
+                  <div class="nl-input-prefix-wrap">
+                    <span class="nl-input-prefix">S/</span>
+                    <input id="nl-presupuesto" formControlName="presupuesto_referencial"
+                      type="number" min="1" step="0.01" class="nl-input nl-input--prefix nl-mono" placeholder="45,000.00" />
+                  </div>
+                  <span class="nl-label-hint">Límite financiero máximo con cargo a partida presupuestal aprobada 2025.</span>
+                  <span class="nl-error" *ngIf="f['presupuesto_referencial'].invalid && f['presupuesto_referencial'].touched">
+                    Debe ser mayor a 0.
+                  </span>
+                </div>
+
+                <div class="nl-field">
+                  <label class="nl-label">Tipo Presupuestal / Centro de Costos</label>
+                  <select class="nl-select">
+                    <option>OPEX - Operaciones Hoteleras [CC-402]</option>
+                    <option>CAPEX - Mantenimiento Mayor [CC-501]</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Fecha límite -->
+              <div class="nl-field">
+                <label for="nl-fecha" class="nl-label">Fecha Límite de Recepción de Ofertas <span class="nl-required">*</span></label>
+                <input id="nl-fecha" formControlName="fecha_limite" type="date" class="nl-input nl-mono" />
+                <span class="nl-label-hint">Plazo perentorio para recepción formal en casilla B2B</span>
+                <span class="nl-error" *ngIf="f['fecha_limite'].invalid && f['fecha_limite'].touched">
+                  Indique la fecha de cierre.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: CRITERIOS Y REQUISITOS -->
+          <div class="nl-section">
+            <div class="nl-section__header">
+              <div class="nl-section__title-wrap">
+                <div class="nl-section__icon nl-section__icon--purple">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="nl-section__title">3. Criterios de Evaluación y Requisitos</h3>
+                  <span class="nl-section__sub">Configuración de ponderación algorítmica y filtros de cumplimiento</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Algorithm Box -->
+            <div class="nl-algo-box">
+              <div class="nl-algo-box__left">
+                <div class="nl-algo-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="nl-algo-title">
+                    Algoritmo Multicriterio AHP Estándar
+                    <span class="nl-badge-active">ACTIVO</span>
+                  </div>
+                  <div class="nl-algo-weights">
+                    Ponderación automatizada: Costo 35%, Experiencia Hotelera 25%, Tiempo Entrega 20%, Histórico de Cumplimiento 20%.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Requisitos checkboxes -->
+            <div class="nl-reqs">
+              <span class="nl-reqs-title">Requisitos Excluyentes de Habilitación Comercial (Obligatorios)</span>
+              <div class="nl-grid-2">
+                <label class="nl-checkbox-label">
+                  <input type="checkbox" checked disabled />
+                  <div>
+                    <strong>RUC Activo y Habido en SUNAT</strong>
+                    <span>Verificación automática vía padrón en línea</span>
+                  </div>
+                </label>
+                <label class="nl-checkbox-label">
+                  <input type="checkbox" checked disabled />
+                  <div>
+                    <strong>Mínimo 3 años en sector hotelero</strong>
+                    <span>Con contratos auditables en resorts o cadenas</span>
+                  </div>
+                </label>
+                <label class="nl-checkbox-label">
+                  <input type="checkbox" checked />
+                  <div>
+                    <strong>Póliza de Responsabilidad Civil vigente</strong>
+                    <span>Cobertura no menor a US$ 100,000</span>
+                  </div>
+                </label>
+                <label class="nl-checkbox-label">
+                  <input type="checkbox" />
+                  <div>
+                    <strong>Certificación ISO / Calidad de Aguas</strong>
+                    <span>Opcional para puntaje de bonificación técnica</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: PREVISUALIZACIÓN EJECUTIVA -->
+        <div class="nl-preview-col">
+          <div class="nl-preview-card">
+            <div class="nl-preview-header">
+              <span class="nl-preview-tag">PREVISUALIZACIÓN EJECUTIVA</span>
+              <span class="nl-preview-live">● Borrador en vivo</span>
+            </div>
+
+            <h4 class="nl-preview-title">
+              {{ f['titulo'].value || 'Título de la licitación a convocar…' }}
+            </h4>
+
+            <div class="nl-preview-chips">
+              <span class="nl-preview-chip nl-preview-chip--cat">
+                {{ f['categoria_id'].value ? 'Categoría Asignada' : 'Sin categoría' }}
+              </span>
+              <span class="nl-preview-chip nl-preview-chip--code">LIC-2025-016</span>
+            </div>
+
+            <div class="nl-preview-stats">
+              <div class="nl-pstat">
+                <span class="nl-pstat-label">Presupuesto Techo</span>
+                <span class="nl-pstat-val nl-mono">
+                  S/ {{ (f['presupuesto_referencial'].value || 0) | number:'1.2-2' }}
+                </span>
+                <span class="nl-pstat-sub">Partida OPEX</span>
+              </div>
+              <div class="nl-pstat">
+                <span class="nl-pstat-label">Cierre de Ofertas</span>
+                <span class="nl-pstat-val nl-mono">
+                  {{ f['fecha_limite'].value || '—' }}
+                </span>
+                <span class="nl-pstat-sub">18:00 hrs</span>
+              </div>
+            </div>
+
+            <div class="nl-preview-weights">
+              <span class="nl-pweights-label">PONDERACIÓN ALGORÍTMICA · AHP v2.4</span>
+              <div class="nl-pweights-chips">
+                <span>● Costo 35%</span>
+                <span>● Experiencia 25%</span>
+                <span>● Plazo 20%</span>
+                <span>● Histórico 20%</span>
+              </div>
+            </div>
+
+            <div class="nl-preview-alert">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Al publicar, se notificará a los postores homologados en la subcategoría y se abrirá el buzón encriptado de ofertas.</span>
+            </div>
+
+            <button type="button" class="nl-btn nl-btn--primary nl-btn--full"
+              (click)="publicar()" [disabled]="enviando || form.invalid">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Publicar Licitación Oficial
+            </button>
           </div>
         </div>
 
-        <div class="field full">
-          <label for="nl-fecha">Fecha Límite de Recepción *</label>
-          <input id="nl-fecha" class="mono" formControlName="fecha_limite" type="date" />
-          <small class="text-danger" *ngIf="f['fecha_limite'].invalid && f['fecha_limite'].touched">
-            Define la fecha límite de recepción.
-          </small>
-        </div>
-
-        <div class="field full">
-          <label for="nl-descripcion">Términos de Referencia / Descripción *</label>
-          <textarea id="nl-descripcion" formControlName="descripcion" rows="4"
-            placeholder="Detalla los requerimientos técnicos del hotel: alcance, entregables, condiciones..."></textarea>
-          <small class="text-danger" *ngIf="f['descripcion'].invalid && f['descripcion'].touched">
-            Describe los términos de referencia.
-          </small>
-        </div>
       </div>
 
-      <footer class="dialogo-foot">
-        <button type="button" class="btn btn-ghost" (click)="cerrar()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" [disabled]="enviando || form.invalid">
-          <span class="material-symbols-rounded icon-sm">post_add</span>
-          {{ enviando ? 'Publicando…' : 'Publicar Licitación' }}
-        </button>
-      </footer>
     </form>
   </div>
 </div>

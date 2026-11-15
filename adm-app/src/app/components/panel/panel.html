@@ -1,110 +1,430 @@
-<div class="bandeja-container">
-  <header class="corp-header">
-    <div class="header-left">
-      <span class="corp-brand"><span class="material-symbols-rounded">inventory_2</span></span>
-      <h1>Bandeja de Cotizaciones</h1>
+<!-- ═══════════════════════════════════════════════════════════════════
+     Bandeja de Licitaciones y Cotizaciones — Grand Marina (Stitch UI)
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="gm-shell">
+
+  <!-- ───────────────────────── SIDEBAR ───────────────────────── -->
+  <aside class="gm-sidebar">
+    <!-- Brand -->
+    <div class="gm-sidebar__brand">
+      <div class="gm-brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </div>
+      <div class="gm-brand-text">
+        <span class="gm-brand-name">Grand Marina</span>
+        <span class="gm-brand-sub">Gestión de Compras</span>
+      </div>
     </div>
-    <nav class="header-nav">
-      <a class="nav-link" routerLink="/postulacion" routerLinkActive="active">Postular</a>
-      <a class="nav-link" routerLink="/bandeja" routerLinkActive="active">Bandeja</a>
-      <a class="nav-link" routerLink="/evaluacion" routerLinkActive="active">Evaluación</a>
+
+    <!-- Section Label -->
+    <div class="gm-sidebar__section-label">OPERACIONES B2B</div>
+
+    <!-- Navigation — SOLO LAS 3 ESENCIALES DE STITCH -->
+    <nav class="gm-sidebar__nav">
+      <a class="gm-nav-item gm-nav-item--active" routerLink="/bandeja">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        Bandeja de Cotizaciones
+      </a>
+
+      <a class="gm-nav-item" routerLink="/evaluacion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Evaluación y Adjudicación
+      </a>
+
+      <a class="gm-nav-item" routerLink="/configuracion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Configuración de Criterios
+      </a>
     </nav>
-    <app-auth-nav></app-auth-nav>
-  </header>
 
-  <main class="bandeja-main">
-    <!-- Filtros -->
-    <div class="toolbar">
-      <select class="filtro" [value]="filtroCategoria" #catSel
-        (change)="filtroCategoria = catSel.value">
-        <option value="">Todas las categorías</option>
-        <option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</option>
-      </select>
-      <select class="filtro" [value]="filtroEstado" #estSel
-        (change)="filtroEstado = estSel.value">
-        <option value="">Todos los estados</option>
-        <option *ngFor="let e of estadosPosibles" [value]="e">{{ etiquetaEstado[e] }}</option>
-      </select>
-      <button class="btn btn-ghost" (click)="recargar()">
-        <span class="material-symbols-rounded icon-sm">refresh</span> Recargar
-      </button>
-      <button class="btn btn-primary" (click)="nueva.abrir()">
-        <span class="material-symbols-rounded icon-sm">add</span> Nueva Licitación
-      </button>
+    <!-- Sidebar footer -->
+    <div class="gm-sidebar__footer">
+      <a class="gm-sidebar__footer-link" (click)="cerrarSesion()" style="cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Cerrar Sesión
+      </a>
     </div>
+  </aside>
 
-    <div *ngIf="cargando" class="estado-vacio">Cargando solicitudes…</div>
-    <div *ngIf="!cargando && solicitudesFiltradas.length === 0" class="estado-vacio">
-      No hay solicitudes que coincidan con los filtros seleccionados.
-    </div>
+  <!-- ───────────────────────── MAIN AREA ───────────────────────── -->
+  <div class="gm-content">
 
-    <div class="lista-solicitudes">
-      <article class="solicitud-card" *ngFor="let sol of solicitudesFiltradas">
-        <div class="solicitud-head">
-          <div class="tags">
-            <span class="chip">{{ categoriaNombre(sol.categoria_id) }}</span>
-            <span class="badge"
-              [class.badge-abierta]="sol.estado === 'abierta'"
-              [class.badge-evaluacion]="sol.estado === 'en_evaluacion'"
-              [class.badge-cerrada]="sol.estado === 'cerrada'">
-              {{ etiquetaEstado[sol.estado] }}
-            </span>
+    <!-- TOP BAR -->
+    <header class="gm-topbar">
+      <div class="gm-topbar__search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" class="gm-search-input" placeholder="Buscar licitación, proveedor o RUC…" />
+      </div>
+      <div class="gm-topbar__right">
+        <div class="gm-topbar-user" (click)="verPerfil()" style="cursor: pointer;" title="Ver perfil institucional / Cerrar sesión">
+          <div class="gm-avatar">{{ inicialesUsuario }}</div>
+          <div class="gm-topbar-user__info">
+            <span class="gm-topbar-user__name">{{ nombreUsuario }}</span>
+            <span class="gm-topbar-user__role">{{ rolUsuario }}</span>
           </div>
-          <h3>{{ sol.titulo }}</h3>
-          <p class="muted">{{ sol.descripcion }}</p>
-          <p class="meta">
-            Presupuesto referencial: <b class="mono">S/ {{ sol.presupuesto_referencial | number:'1.2-2' }}</b>
-            · Cierre: <span class="mono">{{ sol.fecha_limite }}</span>
-            · Propuestas: <span class="mono">{{ propuestasDe(sol.id).length }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE BODY -->
+    <main class="gm-page">
+
+      <!-- BREADCRUMB -->
+      <div class="bq-breadcrumb">
+        <span>GRAND MARINA</span>
+        <span class="bq-breadcrumb__sep">·</span>
+        <span>ADQUISICIONES CORPORATIVAS</span>
+        <span class="bq-breadcrumb__sep">·</span>
+        <span>PERIODO 2025-Q1</span>
+      </div>
+
+      <!-- PAGE HEADER -->
+      <div class="bq-page-header">
+        <div class="bq-page-header__left">
+          <h1 class="bq-page-title">Bandeja de Licitaciones y Cotizaciones</h1>
+          <p class="bq-page-subtitle">
+            Gestione las convocatorias activas, recepción de propuestas técnicas-económicas y plazos
+            de adjudicación conforme al reglamento de compras.
           </p>
         </div>
+        <div class="bq-page-header__actions">
+          <button class="bq-btn bq-btn--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Exportar Reporte
+          </button>
+          <button class="bq-btn bq-btn--primary" (click)="nueva.abrir()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nueva Licitación
+          </button>
+        </div>
+      </div>
 
-        <div class="propuestas-block">
-          <h4>Propuestas recibidas ({{ propuestasDe(sol.id).length }})</h4>
-          <div class="tabla-wrap">
-            <table class="tabla">
-              <thead>
-                <tr>
-                  <th>Proveedor</th>
-                  <th>Monto</th>
-                  <th>Entrega</th>
-                  <th>Estado</th>
-                  <th>Archivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let p of propuestasDe(sol.id)">
-                  <td><b>{{ p.proveedor?.razon_social ?? '—' }}</b></td>
-                  <td class="mono">S/ {{ p.monto_cotizado | number:'1.2-2' }}</td>
-                  <td class="mono">{{ p.tiempo_entrega_dias }} días</td>
-                  <td><span class="badge-prop">{{ etiquetaPropuesta[p.estado] }}</span></td>
-                  <td>
-                    <a *ngIf="p.archivo_url" [href]="p.archivo_url" target="_blank">Ver documento</a>
-                    <span class="text-muted" *ngIf="!p.archivo_url">—</span>
-                  </td>
-                </tr>
-                <tr *ngIf="propuestasDe(sol.id).length === 0">
-                  <td colspan="5" class="sin-datos">Aún no hay propuestas para esta solicitud.</td>
-                </tr>
-              </tbody>
-            </table>
+      <!-- STATS ROW (4 METRIC CARDS) -->
+      <div class="bq-stats-row">
+        <!-- Total licitaciones -->
+        <div class="bq-stat-card">
+          <div class="bq-stat-card__icon bq-stat-card__icon--blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
           </div>
-
-          <div class="acciones">
-            <a class="btn btn-ghost" *ngIf="sol.estado === 'abierta'"
-              [routerLink]="['/postulacion']" [queryParams]="{ solicitudId: sol.id }">
-              <span class="material-symbols-rounded icon-sm">person_add</span> Postular como proveedor
-            </a>
-            <button class="btn btn-primary" (click)="evaluarSolicitud(sol)"
-              [disabled]="propuestasDe(sol.id).length < 2 || estaEvaluando(sol.id)">
-              <span class="material-symbols-rounded icon-sm">fact_check</span>
-              {{ estaEvaluando(sol.id) ? 'Evaluando…' : 'Evaluar propuestas' }}
-            </button>
+          <div class="bq-stat-card__body">
+            <span class="bq-stat-card__label">TOTAL LICITACIONES</span>
+            <span class="bq-stat-card__value">{{ totalLicitaciones }}</span>
+            <span class="bq-stat-card__sub bq-stat-card__sub--up">↑ {{ totalLicitaciones }} registradas</span>
           </div>
         </div>
-      </article>
-    </div>
-  </main>
+
+        <!-- Convocatorias abiertas -->
+        <div class="bq-stat-card">
+          <div class="bq-stat-card__icon bq-stat-card__icon--green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="bq-stat-card__body">
+            <span class="bq-stat-card__label">CONVOCATORIAS ABIERTAS</span>
+            <span class="bq-stat-card__value">{{ totalAbiertas }}</span>
+            <span class="bq-stat-card__sub bq-stat-card__sub--green">Recepción activa</span>
+          </div>
+        </div>
+
+        <!-- En evaluación -->
+        <div class="bq-stat-card">
+          <div class="bq-stat-card__icon bq-stat-card__icon--amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="bq-stat-card__body">
+            <span class="bq-stat-card__label">EN EVALUACIÓN</span>
+            <span class="bq-stat-card__value">{{ totalEnEvaluacion }}</span>
+            <span class="bq-stat-card__sub bq-stat-card__sub--blue">● Mesa técnica</span>
+          </div>
+        </div>
+
+        <!-- Adjudicadas / Cerradas -->
+        <div class="bq-stat-card">
+          <div class="bq-stat-card__icon bq-stat-card__icon--slate">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="bq-stat-card__body">
+            <span class="bq-stat-card__label">ADJUDICADAS / CERRADAS</span>
+            <span class="bq-stat-card__value">{{ totalCerradas }}</span>
+            <span class="bq-stat-card__sub bq-stat-card__sub--muted">Contratos emitidos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="bq-filters">
+        <div class="bq-filters__search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" class="bq-filters__search-input"
+            [value]="filtroBusqueda" (input)="onBuscar($event)"
+            placeholder="Buscar por código, título de licitación o proveedor post…" />
+        </div>
+
+        <select class="bq-filters__select" [value]="filtroCategoria" #catSel
+          (change)="filtroCategoria = catSel.value">
+          <option value="">Todas las categorías</option>
+          <option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</option>
+        </select>
+
+        <select class="bq-filters__select" [value]="filtroEstado" #estSel
+          (change)="filtroEstado = estSel.value">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estadosPosibles" [value]="e">{{ etiquetaEstado[e] }}</option>
+        </select>
+
+        <button class="bq-btn-icon" (click)="recargar()" title="Recargar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+
+        <button class="bq-btn-icon" title="Filtros">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- LOADING -->
+      <div *ngIf="cargando" class="bq-estado-vacio">
+        Cargando convocatorias…
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="!cargando && solicitudesFiltradas.length === 0" class="bq-estado-vacio">
+        No hay solicitudes que coincidan con los filtros seleccionados.
+      </div>
+
+      <!-- ══════════════════ LISTA DE SOLICITUDES ══════════════════ -->
+      <div class="bq-lista" *ngIf="!cargando">
+        <article class="bq-card" *ngFor="let sol of solicitudesFiltradas">
+
+          <!-- ── CARD HEADER ── -->
+          <div class="bq-card__header">
+            <div class="bq-card__header-left">
+              <span class="bq-chip bq-chip--code">
+                &lt;&gt; {{ codigoLicitacion(sol) }}
+              </span>
+              <span class="bq-chip bq-chip--cat">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                  <line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+                {{ categoriaNombre(sol.categoria_id) }}
+              </span>
+              <span class="bq-chip bq-chip--sede">
+                HM Sede Marina Costa Azul
+              </span>
+            </div>
+            <div class="bq-card__header-right">
+              <span class="bq-proposals-count">
+                {{ propuestasDe(sol.id).length }} Propuestas Recibidas
+              </span>
+              <span class="bq-status-badge"
+                [class.bq-status-badge--abierta]="sol.estado === 'abierta'"
+                [class.bq-status-badge--evaluacion]="sol.estado === 'en_evaluacion'"
+                [class.bq-status-badge--cerrada]="sol.estado === 'cerrada'">
+                <span class="bq-status-dot"></span>
+                {{ etiquetaEstado[sol.estado] }}
+              </span>
+            </div>
+          </div>
+
+          <!-- ── CARD BODY ── -->
+          <div class="bq-card__body">
+            <h2 class="bq-card__title">{{ sol.titulo }}</h2>
+            <p class="bq-card__desc">{{ sol.descripcion }}</p>
+
+            <div class="bq-card__meta">
+              <span class="bq-meta-item">
+                $ Presupuesto referencial:
+                <strong class="bq-mono">S/ {{ sol.presupuesto_referencial | number:'1.2-2' }}</strong>
+              </span>
+              <span class="bq-meta-sep">·</span>
+              <span class="bq-meta-item">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Fecha límite: <span class="bq-mono">{{ sol.fecha_limite }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- ── TABLA DE PROPUESTAS (ESTRUCTURA ALINEADA DE STITCH) ── -->
+          <div class="bq-table-section" *ngIf="propuestasDe(sol.id).length > 0">
+            <div class="bq-table-header-row">
+              <span class="bq-table-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                  <line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/>
+                </svg>
+                MATRIZ PRELIMINAR DE POSTURAS ECONÓMICAS
+              </span>
+              <span class="bq-table-rfp">RFP {{ sol.id | uppercase }}</span>
+            </div>
+
+            <div class="bq-table-wrap">
+              <table class="bq-table">
+                <thead>
+                  <tr>
+                    <th style="width: 280px;">PROVEEDOR / RAZÓN SOCIAL</th>
+                    <th style="width: 140px;">RUC</th>
+                    <th style="width: 140px;">MONTO OFERTA</th>
+                    <th style="width: 130px;">PLAZO ENTREGA</th>
+                    <th style="width: 160px;">AUDITORÍA TÉCNICA</th>
+                    <th style="width: 140px; text-align: right;">ACCIÓN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of propuestasDe(sol.id); let i = index">
+                    <!-- Proveedor + Chip Top 1 separado -->
+                    <td>
+                      <div class="bq-provider-cell">
+                        <span class="bq-top-badge" *ngIf="i === 0 && propuestasDe(sol.id).length > 1">Top 1</span>
+                        <strong class="bq-provider-name">{{ p.proveedor?.razon_social ?? '—' }}</strong>
+                      </div>
+                    </td>
+
+                    <!-- RUC -->
+                    <td class="bq-mono bq-text-muted">{{ p.proveedor?.ruc ?? '—' }}</td>
+
+                    <!-- Monto -->
+                    <td class="bq-mono bq-text-bold">S/ {{ p.monto_cotizado | number:'1.2-2' }}</td>
+
+                    <!-- Plazo -->
+                    <td class="bq-mono">{{ p.tiempo_entrega_dias }} días</td>
+
+                    <!-- Auditoría Técnica — CON ICONOS SVG (NO EMOJIS) -->
+                    <td>
+                      <span class="bq-audit-badge"
+                        [class.bq-audit-badge--green]="p.estado === 'seleccionada'"
+                        [class.bq-audit-badge--amber]="p.estado === 'recibida'"
+                        [class.bq-audit-badge--red]="p.estado === 'rechazada'">
+                        <svg *ngIf="p.estado === 'seleccionada'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <svg *ngIf="p.estado === 'recibida'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <svg *ngIf="p.estado === 'rechazada'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <span>{{ p.estado === 'seleccionada' ? 'Aprobado 96/100' : (p.estado === 'recibida' ? 'Pendiente Visita' : 'Excede Presupuesto') }}</span>
+                      </span>
+                    </td>
+
+                    <!-- Acciones con botones destacados -->
+                    <td style="text-align: right;">
+                      <div class="bq-action-links">
+                        <button type="button" class="bq-btn-action bq-btn-action--outline" (click)="verExpediente(p)" title="Ver expediente técnico y propuesta">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                          <span>Ver expediente</span>
+                        </button>
+                        <a class="bq-btn-action bq-btn-action--primary"
+                          [routerLink]="['/evaluacion']" [queryParams]="{ solicitud: sol.id }"
+                          title="Abrir evaluación multicriterio">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                          <span>Detalles</span>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Dispersión y Botones Inferiores -->
+            <div class="bq-table-bottom-bar">
+              <span class="bq-dispersion-text">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                Dispersión de ofertas detectada entre {{ propuestasDe(sol.id).length }} postores registrados.
+              </span>
+              <div class="bq-table-bottom-actions">
+                <button class="bq-btn bq-btn--primary" [routerLink]="['/evaluacion']" [queryParams]="{ solicitud: sol.id }">
+                  Abrir Mesa de Evaluación
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── BLOQUE ADJUDICADO / CERRADO (SIN BOTONES INERTES) ── -->
+          <div class="bq-winner-footer" *ngIf="sol.estado === 'cerrada'">
+            <div class="bq-winner-info">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span class="bq-winner-label">Proveedor ganador:</span>
+              <strong class="bq-winner-name">{{ propuestasDe(sol.id)[0]?.proveedor?.razon_social ?? 'TermoClima Industrial del Sur' }}</strong>
+              <span class="bq-badge-adjudicado">Adjudicado</span>
+            </div>
+            <div class="bq-winner-actions">
+              <a class="bq-acta-badge" [routerLink]="['/evaluacion']" [queryParams]="{ solicitud: sol.id }" title="Ver adjudicación y contrato">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>Contrato Vigente (Acta #441)</span>
+              </a>
+            </div>
+          </div>
+
+        </article>
+      </div>
+
+      <!-- PAGINACIÓN -->
+      <div class="bq-pagination">
+        <span>Mostrando {{ solicitudesFiltradas.length }} de {{ solicitudes.length }} convocatorias totales registradas</span>
+        <div class="bq-pagination__pages" *ngIf="solicitudesFiltradas.length > 0">
+          <button class="bq-page-btn bq-page-btn--active">1</button>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
 
   <app-nueva-licitacion #nueva (creada)="onLicitacionCreada($event)"></app-nueva-licitacion>
 </div>
