@@ -132,6 +132,21 @@ export class AdminComponent implements OnInit, OnDestroy {
     return mapa[estado] ?? estado;
   }
 
+  licitacionDeContrato(c: Contrato): string {
+    if (c.propuesta?.solicitud?.titulo) {
+      return c.propuesta.solicitud.titulo;
+    }
+    const solId = c.propuesta?.solicitud_id;
+    if (solId) {
+      const match = this.solicitudes.find((s) => s.id === solId);
+      if (match?.titulo) return match.titulo;
+    }
+    if (this.solicitudActiva) {
+      return this.solicitudActiva.titulo;
+    }
+    return 'Licitación de Mantenimiento y Servicios';
+  }
+
   formatearMoneda(valor: number | null | undefined): string {
     return (Number(valor) || 0).toLocaleString('es-PE', {
       minimumFractionDigits: 2,

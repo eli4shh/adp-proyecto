@@ -69,6 +69,12 @@
         <input type="text" class="gm-search-input" placeholder="Buscar licitación, proveedor o RUC…" />
       </div>
       <div class="gm-topbar__right">
+        <button class="gm-topbar__btn" (click)="abrirNuevaLicitacion()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nueva Licitación
+        </button>
         <div class="gm-topbar-user" (click)="verPerfil()" style="cursor: pointer;" title="Ver perfil institucional / Cerrar sesión">
           <div class="gm-avatar">{{ inicialesUsuario }}</div>
           <div class="gm-topbar-user__info">
@@ -109,7 +115,7 @@
             </svg>
             Exportar Reporte
           </button>
-          <button class="bq-btn bq-btn--primary" (click)="nueva.abrir()">
+          <button class="bq-btn bq-btn--primary" (click)="abrirNuevaLicitacion()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>

@@ -79,10 +79,47 @@ export class ServiciosExternosService {
     );
   }
 
+  private readonly STORAGE_SOLICITUDES_KEY = 'gm_solicitudes_locales_v1';
+
+  obtenerSolicitudesDeStorage(): SolicitudCotizacion[] {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return [];
+      const raw = localStorage.getItem(this.STORAGE_SOLICITUDES_KEY);
+      if (!raw) return [];
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+
+  guardarSolicitudEnStorage(s: SolicitudCotizacion): void {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      const list = this.obtenerSolicitudesDeStorage();
+      const filtradas = list.filter((item) => item.id !== s.id);
+      filtradas.unshift(s);
+      localStorage.setItem(this.STORAGE_SOLICITUDES_KEY, JSON.stringify(filtradas));
+    } catch {}
+  }
+
   private obtenerSolicitudesCache(): Observable<SolicitudCotizacion[]> {
     if (!this.solicitudesCache$) {
+      const locales = this.obtenerSolicitudesDeStorage();
+      const defaults = this.solicitudesPorDefecto();
+
+      const combinarSols = (base: SolicitudCotizacion[]) => {
+        const map = new Map<string, SolicitudCotizacion>();
+        defaults.forEach((s) => map.set(s.id, s));
+        base.forEach((s) => map.set(s.id, s));
+        locales.forEach((s) => map.set(s.id, s));
+        return Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      };
+
       if (!this.supabase) {
-        this.solicitudesCache$ = of(this.solicitudesPorDefecto()).pipe(shareReplay(1));
+        this.solicitudesCache$ = of(combinarSols([])).pipe(shareReplay(1));
       } else {
         this.solicitudesCache$ = from(
           this.supabase
@@ -92,12 +129,9 @@ export class ServiciosExternosService {
         ).pipe(
           map((res) => {
             const datos = this.extraerDatos<SolicitudCotizacion>(res);
-            if (datos && datos.length > 0) {
-              return datos;
-            }
-            return this.solicitudesPorDefecto();
+            return combinarSols(datos);
           }),
-          catchError(() => of(this.solicitudesPorDefecto())),
+          catchError(() => of(combinarSols([]))),
           shareReplay(1)
         );
       }
@@ -258,7 +292,7 @@ export class ServiciosExternosService {
     return from(
       this.supabase
         .from('contratos')
-        .select('*, propuesta:propuestas_cotizacion(*, proveedor:proveedores(*))')
+        .select('*, propuesta:propuestas_cotizacion(*, proveedor:proveedores(*), solicitud:solicitudes_cotizacion(*))')
         .order('fecha_inicio', { ascending: false })
     ).pipe(
       map((res) => this.extraerDatos<Contrato>(res)),
@@ -290,8 +324,10 @@ export class ServiciosExternosService {
       created_at: new Date().toISOString()
     };
 
+    this.guardarSolicitudEnStorage(localNueva);
+
     if (!this.supabase) {
-      this.solicitudesCache$ = of([localNueva, ...this.solicitudesPorDefecto()]).pipe(shareReplay(1));
+      this.solicitudesCache$ = null;
       this.refrescarCatalogoSolicitudesAbiertas();
       return of(localNueva);
     }
@@ -301,6 +337,7 @@ export class ServiciosExternosService {
       this.supabase
         .from('solicitudes_cotizacion')
         .insert({
+          id: localNueva.id,
           titulo: data.titulo,
           categoria_id: data.categoria_id,
           descripcion: data.descripcion,
@@ -312,15 +349,19 @@ export class ServiciosExternosService {
         .single()
         .then((res: RespuestaSupabase) => {
           if (res.error) throw res.error;
-          return res.data as SolicitudCotizacion;
+          const creada = res.data as SolicitudCotizacion;
+          this.guardarSolicitudEnStorage(creada);
+          return creada;
         })
     ).pipe(
       catchError((err) => {
         console.warn('Licitación registrada en caché local (RLS o fuera de línea):', err);
-        this.solicitudesCache$ = of([localNueva, ...this.solicitudesPorDefecto()]).pipe(shareReplay(1));
         return of(localNueva);
       }),
-      tap(() => this.refrescarCatalogoSolicitudesAbiertas())
+      tap(() => {
+        this.solicitudesCache$ = null;
+        this.refrescarCatalogoSolicitudesAbiertas();
+      })
     );
   }
 

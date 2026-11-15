@@ -173,6 +173,30 @@
   gap: 1.25rem;
 }
 
+.gm-topbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gm-topbar__btn:hover {
+  background-color: #1d4ed8;
+}
+
+.gm-topbar__btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .gm-topbar-icon-btn {
   background: none;
   border: none;

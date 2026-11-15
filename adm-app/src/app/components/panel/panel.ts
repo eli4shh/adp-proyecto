@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
@@ -38,6 +38,7 @@ export class PanelComponent implements OnInit, OnDestroy {
   filtroBusqueda = '';
   cargando = true;
   evaluandoIds = new Set<string>();
+  @ViewChild('nueva') nuevaModal?: NuevaLicitacionComponent;
   private suscripciones: Subscription[] = [];
 
   readonly etiquetaEstado: Record<EstadoSolicitud, string> = {
@@ -248,8 +249,14 @@ export class PanelComponent implements OnInit, OnDestroy {
     return 'ambar';
   }
 
+  abrirNuevaLicitacion() {
+    this.nuevaModal?.abrir();
+  }
+
   recargar() {
+    this.cargando = true;
     this.propuestasPorSolicitud.clear();
+    this.rankingPorSolicitud.clear();
     this.servicios.limpiarCache();
     this.cargarDatos();
   }
