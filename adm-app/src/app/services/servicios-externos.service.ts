@@ -140,6 +140,39 @@ export class ServiciosExternosService {
 
   private readonly STORAGE_PROPUESTAS_KEY = 'gm_propuestas_locales_v1';
 
+  private getProveedorKey(p: PropuestaCotizacion): string {
+    const ruc = p.proveedor?.ruc?.trim();
+    if (ruc) return ruc;
+    const razon = p.proveedor?.razon_social?.trim().toLowerCase();
+    if (razon) return razon;
+    return p.proveedor_id || p.id;
+  }
+
+  /**
+   * Garantiza que cada proveedor tenga exactamente UNA propuesta por licitación.
+   * Si existen múltiples propuestas históricas o de prueba:
+   * 1. Prioriza la que esté marcada como 'seleccionada' (adjudicada).
+   * 2. De lo contrario, conserva la propuesta original (la primera registrada).
+   */
+  private deduplicarPropuestas(propuestas: PropuestaCotizacion[]): PropuestaCotizacion[] {
+    const map = new Map<string, PropuestaCotizacion>();
+
+    propuestas.forEach((p) => {
+      const key = `${p.solicitud_id}_${this.getProveedorKey(p)}`;
+      const existente = map.get(key);
+      if (!existente) {
+        map.set(key, p);
+      } else {
+        // Si la que estamos evaluando es la adjudicada/seleccionada, tiene máxima prioridad
+        if (p.estado === 'seleccionada' && existente.estado !== 'seleccionada') {
+          map.set(key, p);
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }
+
   private obtenerPropuestasDeStorage(solicitudId?: string): PropuestaCotizacion[] {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return [];
@@ -156,11 +189,15 @@ export class ServiciosExternosService {
           typeof p.solicitud_id === 'string' &&
           p.solicitud_id.trim().length > 0
       );
-      if (validas.length !== list.length) {
-        localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(validas));
+
+      // Deduplica eliminando cualquier duplicado previo del mismo proveedor en la misma licitación
+      const deduplicadas = this.deduplicarPropuestas(validas);
+      if (deduplicadas.length !== list.length) {
+        localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(deduplicadas));
       }
-      if (!solicitudId) return validas;
-      return validas.filter((p) => p.solicitud_id === solicitudId);
+
+      if (!solicitudId) return deduplicadas;
+      return deduplicadas.filter((p) => p.solicitud_id === solicitudId);
     } catch {
       return [];
     }
@@ -171,31 +208,33 @@ export class ServiciosExternosService {
       if (!propuesta || !propuesta.id || !propuesta.solicitud_id) return;
       if (typeof window === 'undefined' || !window.localStorage) return;
       const list = this.obtenerPropuestasDeStorage();
-      const filtradas = list.filter((p) => p.id !== propuesta.id);
+      const provKey = this.getProveedorKey(propuesta);
+
+      // Si este proveedor ya tiene una propuesta en esta licitación, la reemplazamos
+      const filtradas = list.filter((p) => {
+        if (p.solicitud_id === propuesta.solicitud_id && this.getProveedorKey(p) === provKey) {
+          return false;
+        }
+        return p.id !== propuesta.id;
+      });
       filtradas.unshift(propuesta);
-      localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(filtradas));
+      const limpias = this.deduplicarPropuestas(filtradas);
+      localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(limpias));
     } catch {}
   }
 
   private combinarPropuestas(locales: PropuestaCotizacion[], base: PropuestaCotizacion[]): PropuestaCotizacion[] {
     const map = new Map<string, PropuestaCotizacion>();
 
-    const getProvKey = (p: PropuestaCotizacion) => {
-      return (p.proveedor?.ruc && p.proveedor.ruc.trim()) ||
-        p.proveedor_id ||
-        (p.proveedor?.razon_social && p.proveedor.razon_social.trim().toLowerCase()) ||
-        p.id;
-    };
-
     // 1. Insertamos las propuestas base
     base.forEach((p) => {
-      const key = `${p.solicitud_id}_${getProvKey(p)}`;
+      const key = `${p.solicitud_id}_${this.getProveedorKey(p)}`;
       map.set(key, p);
     });
 
     // 2. Sobreponemos las propuestas locales evitando duplicados del mismo proveedor en la misma licitación
     locales.forEach((p) => {
-      const key = `${p.solicitud_id}_${getProvKey(p)}`;
+      const key = `${p.solicitud_id}_${this.getProveedorKey(p)}`;
       const existente = map.get(key);
       if (!existente || p.estado === 'seleccionada' || existente.estado !== 'seleccionada') {
         map.set(key, p);
@@ -253,7 +292,12 @@ export class ServiciosExternosService {
     if (solicitudId) query = query.eq('solicitud_id', solicitudId);
 
     return from(query.order('created_at', { ascending: false })).pipe(
-      map((res) => this.extraerDatos<PropuestaCotizacion>(res)),
+      map((res) => {
+        const remotas = this.extraerDatos<PropuestaCotizacion>(res);
+        const locales = this.obtenerPropuestasDeStorage(solicitudId);
+        const todas = remotas.length > 0 ? this.combinarPropuestas(locales, remotas) : locales;
+        return this.deduplicarPropuestas(todas);
+      }),
       catchError(() => of(this.obtenerPropuestasDeStorage(solicitudId)))
     );
   }
@@ -408,7 +452,7 @@ export class ServiciosExternosService {
     return from(
       this.supabase
         .from('proveedores')
-        .insert(provPayload)
+        .upsert(provPayload, { onConflict: 'ruc' })
         .select()
         .single()
         .then(async (resProv: RespuestaSupabase) => {

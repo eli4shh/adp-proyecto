@@ -155,33 +155,75 @@
             <div class="rf-field">
               <div class="rf-label-row">
                 <label class="rf-label" for="ruc">RUC (11 DÍGITOS) <span class="rf-required">*</span></label>
-                <span class="rf-sunat-badge" *ngIf="f['ruc'].valid">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <!-- Estado de consulta OpenRUC -->
+                <span class="rf-sunat-badge rf-sunat-badge--loading" *ngIf="consultandoRuc">
+                  <svg class="rf-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="2" x2="12" y2="6"/>
+                    <line x1="12" y1="18" x2="12" y2="22"/>
+                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                    <line x1="2" y1="12" x2="6" y2="12"/>
+                    <line x1="18" y1="12" x2="22" y2="12"/>
+                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+                  </svg>
+                  Consultando SUNAT...
+                </span>
+                <span class="rf-sunat-badge rf-sunat-badge--success" *ngIf="!consultandoRuc && sunatVerificado">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
-                  SUNAT Activo &amp; Habido
+                  SUNAT: Activo &amp; Habido
+                </span>
+                <span class="rf-sunat-badge rf-sunat-badge--error" *ngIf="!consultandoRuc && sunatError">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  No verificado
                 </span>
               </div>
               <div class="rf-input-wrap">
                 <input id="ruc" type="text" formControlName="ruc" maxlength="11" class="rf-input rf-mono"
-                  placeholder="20549281943" />
-                <svg class="rf-input-end-icon" *ngIf="f['ruc'].valid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  placeholder="20100047218" />
+                <svg class="rf-input-end-icon" *ngIf="sunatVerificado" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
               </div>
               <span class="rf-error" *ngIf="f['ruc'].invalid && f['ruc'].touched">
-                El RUC debe tener exactamente 11 dígitos numéricos.
+                El RUC debe tener 11 dígitos numéricos e iniciar en 20 (Persona Jurídica).
+              </span>
+              <span class="rf-error" *ngIf="!consultandoRuc && sunatError">
+                {{ sunatError }}
               </span>
             </div>
 
             <!-- RAZÓN SOCIAL -->
             <div class="rf-field">
-              <label class="rf-label" for="razon_social">RAZÓN SOCIAL REGISTRADA <span class="rf-required">*</span></label>
+              <div class="rf-label-row">
+                <label class="rf-label" for="razon_social">RAZÓN SOCIAL REGISTRADA <span class="rf-required">*</span></label>
+                <span class="rf-locked-badge" *ngIf="razonSocialBloqueada">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  Bloqueado por SUNAT
+                </span>
+              </div>
               <input id="razon_social" type="text" formControlName="razon_social" class="rf-input"
-                placeholder="TermoClima Industrial del Sur S.A.C." />
+                [readOnly]="razonSocialBloqueada"
+                [class.rf-input--locked]="razonSocialBloqueada"
+                placeholder="Se autocompleta con el RUC verificado" />
               <span class="rf-error" *ngIf="f['razon_social'].invalid && f['razon_social'].touched">
                 Indique la razón social registrada en SUNAT.
+              </span>
+              <span class="rf-hint rf-hint--success" *ngIf="razonSocialBloqueada">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Razón social oficial obtenida de SUNAT (no modificable).
               </span>
             </div>
 

@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { ServiciosExternosService } from '../../services/servicios-externos.service';
+import { SunatService } from '../../services/sunat.service';
 import { CategoriaServicio, SolicitudCotizacion } from '../../interfaces/servicios-externos';
 
 /**
@@ -28,11 +29,19 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
   nombreArchivo: string | null = null;
   tamanoArchivo: string | null = null;
   form!: FormGroup;
+
+  // Estado de validación OpenRUC / SUNAT
+  consultandoRuc = false;
+  sunatVerificado = false;
+  sunatError: string | null = null;
+  razonSocialBloqueada = false;
+
   private suscripciones: Subscription[] = [];
 
   constructor(
     private fb: FormBuilder,
     private servicios: ServiciosExternosService,
+    private sunatService: SunatService,
     private ruta: ActivatedRoute,
     private router: Router
   ) {}
@@ -64,7 +73,7 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
   private inicializarFormulario() {
     this.form = this.fb.group({
       solicitud_id: ['', Validators.required],
-      ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
+      ruc: ['', [Validators.required, Validators.pattern(/^20\d{9}$/)]],
       razon_social: ['', Validators.required],
       nombre_contacto: ['', Validators.required],
       telefono: ['', [Validators.required, Validators.pattern(/^[+\d][\d\s-]{8,14}$/)]],
@@ -74,6 +83,72 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
       tiempo_entrega_dias: [null, [Validators.required, Validators.min(1), Validators.max(365)]],
       propuesta_tecnica: ['', Validators.required],
       archivo_url: ['']
+    });
+
+    // Escucha en tiempo real de cambios en el RUC para consulta con OpenRUC
+    this.suscripciones.push(
+      this.form.get('ruc')!.valueChanges.subscribe((rawVal) => {
+        const val = (rawVal || '').trim();
+        if (val.length === 11) {
+          if (val.startsWith('20')) {
+            this.verificarRucConSunat(val);
+          } else {
+            this.consultandoRuc = false;
+            this.sunatVerificado = false;
+            this.razonSocialBloqueada = false;
+            this.sunatError = 'El RUC debe iniciar con 20 (Personas Jurídicas para licitaciones).';
+            this.form.patchValue({ razon_social: '' }, { emitEvent: false });
+          }
+        } else {
+          this.consultandoRuc = false;
+          if (this.sunatVerificado || this.razonSocialBloqueada || this.sunatError) {
+            this.sunatVerificado = false;
+            this.razonSocialBloqueada = false;
+            this.sunatError = null;
+            this.form.patchValue({ razon_social: '' }, { emitEvent: false });
+          }
+        }
+      })
+    );
+  }
+
+  private verificarRucConSunat(ruc: string) {
+    this.consultandoRuc = true;
+    this.sunatError = null;
+    this.sunatVerificado = false;
+    this.razonSocialBloqueada = false;
+
+    this.sunatService.consultarRuc(ruc).subscribe({
+      next: (data) => {
+        this.consultandoRuc = false;
+        if (data && data.razon_social) {
+          const activo = (data.estado || '').toUpperCase() === 'ACTIVO';
+          const habido = (data.condicion || '').toUpperCase() === 'HABIDO';
+
+          if (activo && habido) {
+            this.sunatVerificado = true;
+            this.razonSocialBloqueada = true;
+            this.sunatError = null;
+            this.form.patchValue({ razon_social: data.razon_social }, { emitEvent: false });
+          } else {
+            this.sunatVerificado = false;
+            this.razonSocialBloqueada = false;
+            this.sunatError = `Empresa no apta para licitar: figura en SUNAT como ${data.estado || 'INACTIVA'} / ${data.condicion || 'NO HABIDA'}.`;
+            this.form.patchValue({ razon_social: '' }, { emitEvent: false });
+          }
+        } else {
+          this.sunatVerificado = false;
+          this.razonSocialBloqueada = false;
+          this.sunatError = 'RUC no encontrado en SUNAT. Verifique el número ingresado.';
+          this.form.patchValue({ razon_social: '' }, { emitEvent: false });
+        }
+      },
+      error: () => {
+        this.consultandoRuc = false;
+        this.sunatVerificado = false;
+        this.razonSocialBloqueada = false;
+        this.sunatError = 'No se pudo verificar el RUC ante SUNAT en este momento.';
+      }
     });
   }
 
@@ -201,7 +276,16 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const v = this.form.value;
+    if (!this.sunatVerificado) {
+      Swal.fire(
+        'Validación SUNAT Requerida',
+        this.sunatError || 'Debe ingresar un RUC 20 activo y habido validado por SUNAT.',
+        'warning'
+      );
+      return;
+    }
+
+    const v = this.form.getRawValue();
     this.enviando = true;
     Swal.fire({
       title: 'Enviando postulación...',
@@ -241,6 +325,11 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
             text: 'Tu propuesta fue recibida y quedará disponible para la evaluación del equipo de compras.',
             confirmButtonText: 'Entendido'
           }).then(() => {
+            this.sunatVerificado = false;
+            this.sunatError = null;
+            this.razonSocialBloqueada = false;
+            this.consultandoRuc = false;
+
             this.form.reset({
               anios_experiencia: 0,
               solicitud_id: this.solicitudes.length ? this.solicitudes[0].id : '',

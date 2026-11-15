@@ -433,6 +433,15 @@ export class PanelComponent implements OnInit, OnDestroy {
       title: `Expediente Técnico Digital — ${razon}`,
       html: `
         <div style="text-align: left; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 22px; font-family: 'Inter', sans-serif; max-height: 65vh; overflow-y: auto;">
+          
+          <!-- Banner aclaratorio cuando no se adjuntó archivo -->
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 11.5px; color: #92400e; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
+            <span style="font-size: 15px; line-height: 1;">ℹ️</span>
+            <div>
+              <strong style="color: #78350f;">Aviso del Sistema:</strong> El postulante no adjuntó un archivo PDF externo. Por este motivo, el sistema generó automáticamente este <strong>Expediente Técnico Digital</strong> a partir de la memoria técnica y los datos ingresados en el formulario en línea.
+            </div>
+          </div>
+
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 16px;">
             <div>
               <div style="font-size: 13.5px; font-weight: 800; color: #1e3a8a; letter-spacing: 0.5px;">GRAND MARINA RESORT &amp; CONVENTION CENTER</div>

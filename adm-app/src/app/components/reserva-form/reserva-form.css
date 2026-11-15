@@ -353,6 +353,52 @@
   color: #2563eb;
 }
 
+.rf-sunat-badge--loading {
+  color: #2563eb;
+}
+
+.rf-sunat-badge--success {
+  color: #16a34a;
+}
+
+.rf-sunat-badge--error {
+  color: #dc2626;
+}
+
+.rf-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+}
+
+.rf-input--locked {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  border-color: #cbd5e1 !important;
+  cursor: not-allowed;
+}
+
+.rf-spin {
+  animation: rf-spin 1s linear infinite;
+}
+
+@keyframes rf-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .rf-hint {
   font-size: 0.72rem;
   color: #64748b;
