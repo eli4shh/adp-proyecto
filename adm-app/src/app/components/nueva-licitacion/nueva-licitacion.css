@@ -151,9 +151,20 @@
   flex-shrink: 0;
 }
 
-.nl-section__icon--blue { background: #eff6ff; color: #2563eb; }
-.nl-section__icon--green { background: #f0fdf4; color: #16a34a; }
-.nl-section__icon--purple { background: #f5f3ff; color: #7c3aed; }
+.nl-section__icon--blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.nl-section__icon--green {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.nl-section__icon--purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
 
 .nl-section__title {
   font-size: 0.95rem;
@@ -286,7 +297,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 0.85rem 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.65rem;
 }
 
 .nl-algo-box__left {
@@ -331,6 +342,37 @@
   margin-top: 0.25rem;
 }
 
+/* ── MINI BARRA PROPORCIONAL MODAL ── */
+.nl-prog-bar {
+  height: 6px;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 1.25rem;
+  background: #e2e8f0;
+}
+
+.nl-prog-segment {
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.nl-prog--blue {
+  background: #2563eb;
+}
+
+.nl-prog--green {
+  background: #16a34a;
+}
+
+.nl-prog--amber {
+  background: #d97706;
+}
+
+.nl-prog--purple {
+  background: #9333ea;
+}
+
 /* ── REQUIREMENTS CHECKBOXES ── */
 .nl-reqs-title {
   font-size: 0.75rem;
@@ -358,6 +400,101 @@
 .nl-checkbox-label input {
   margin-top: 0.2rem;
   accent-color: #2563eb;
+}
+
+.nl-checkbox-label strong {
+  display: block;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nl-checkbox-label span {
+  display: block;
+  color: #64748b;
+  font-size: 0.7rem;
+  margin-top: 0.15rem;
+}
+
+/* ── STEPPER CONTROL EDITABLE PARA AÑOS ── */
+.nl-checkbox-label--editable {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.nl-stepper-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.nl-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nl-stepper-txt {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nl-stepper-box {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #94a3b8;
+  border-radius: 5px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.nl-stepper-btn {
+  border: none;
+  background: #e2e8f0;
+  color: #1e293b;
+  width: 22px;
+  height: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: background 0.12s;
+  padding: 0;
+}
+
+.nl-stepper-btn:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.nl-stepper-input {
+  width: 32px;
+  height: 22px;
+  border: none;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #2563eb;
+  background: transparent;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.nl-stepper-input::-webkit-outer-spin-button,
+.nl-stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.nl-stepper-hint {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 400;
 }
 
 .nl-checkbox-label div {
@@ -429,8 +566,16 @@
   border-radius: 4px;
 }
 
-.nl-preview-chip--cat { background-color: #eff6ff; color: #2563eb; }
-.nl-preview-chip--code { background-color: #f1f5f9; color: #475569; font-family: 'JetBrains Mono', monospace; }
+.nl-preview-chip--cat {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.nl-preview-chip--code {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-family: 'JetBrains Mono', monospace;
+}
 
 .nl-preview-stats {
   display: grid;

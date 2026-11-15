@@ -258,6 +258,85 @@
   margin: 0 0 2rem 0;
 }
 
+/* ── SELECTOR DE CATEGORÍAS TABS ─────────────────────────────────── */
+.cfg-tabs-container {
+  margin-bottom: 1.5rem;
+}
+
+.cfg-tabs-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.65rem;
+  text-transform: uppercase;
+}
+
+.cfg-tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cfg-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.cfg-tab:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.cfg-tab--active {
+  background-color: #eff6ff !important;
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.cfg-tab__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.cfg-tab--active .cfg-tab__icon {
+  color: #2563eb;
+}
+
+.cfg-tab__name {
+  white-space: nowrap;
+}
+
+.cfg-cat-badge {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.cfg-cat-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: -0.25rem 0 1.25rem 0;
+  line-height: 1.45;
+}
+
 /* ── CARD ────────────────────────────────────────────────────────── */
 .cfg-card {
   background-color: #ffffff;

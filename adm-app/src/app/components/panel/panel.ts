@@ -63,6 +63,28 @@ export class PanelComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarDatos();
+    this.suscripciones.push(
+      this.evaluacionService.cambioPesos$.subscribe(() => {
+        this.recalcularTodosLosRankings();
+      })
+    );
+  }
+
+  private recalcularTodosLosRankings() {
+    this.propuestasPorSolicitud.forEach((props, solId) => {
+      if (props.length > 0) {
+        try {
+          const catId = this.solicitudes.find((s) => s.id === solId)?.categoria_id;
+          const pesos = this.evaluacionService.getPesosDeCategoria(catId);
+          const ranking = this.evaluacionService.evaluarPropuestas(props, pesos);
+          this.rankingPorSolicitud.set(solId, ranking);
+        } catch (e) {
+          console.warn('Recálculo de ranking:', e);
+        }
+      }
+    });
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy() {
@@ -192,11 +214,13 @@ export class PanelComponent implements OnInit, OnDestroy {
           });
           this.propuestasPorSolicitud = mapaProps;
 
-          // Precomputar rankings
+          // Precomputar rankings con pesos adaptativos por categoría
           mapaProps.forEach((props, solId) => {
             if (props.length > 0) {
               try {
-                const ranking = this.evaluacionService.evaluarPropuestas(props);
+                const catId = this.solicitudes.find((s) => s.id === solId)?.categoria_id;
+                const pesos = this.evaluacionService.getPesosDeCategoria(catId);
+                const ranking = this.evaluacionService.evaluarPropuestas(props, pesos);
                 this.rankingPorSolicitud.set(solId, ranking);
               } catch (e) {
                 console.warn('Evaluación preliminar de propuestas:', e);
@@ -225,7 +249,9 @@ export class PanelComponent implements OnInit, OnDestroy {
         this.propuestasPorSolicitud.set(solicitudId, props);
         if (props.length > 0) {
           try {
-            const ranking = this.evaluacionService.evaluarPropuestas(props);
+            const catId = this.solicitudes.find((s) => s.id === solicitudId)?.categoria_id;
+            const pesos = this.evaluacionService.getPesosDeCategoria(catId);
+            const ranking = this.evaluacionService.evaluarPropuestas(props, pesos);
             this.rankingPorSolicitud.set(solicitudId, ranking);
           } catch (e) {
             console.warn('Evaluación preliminar de propuestas:', e);

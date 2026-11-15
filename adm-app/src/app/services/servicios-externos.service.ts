@@ -20,6 +20,42 @@ import { RegistroEvaluacion } from './evaluacion.service';
 
 type RespuestaSupabase = { data: unknown; error: unknown };
 
+export const MACRO_CATEGORIAS_CATALOGO: Record<string, { nombre: string; descripcion: string; icono: string }> = {
+  'c0000000-0000-4000-8000-000000000004': {
+    nombre: 'Alimentos y Bebidas',
+    descripcion: 'Catering, carnes, mariscos, licores, insumos frescos y control estricto de cadena de frío.',
+    icono: 'utensils'
+  },
+  'c0000000-0000-4000-8000-000000000003': {
+    nombre: 'Housekeeping y Limpieza',
+    descripcion: 'Químicos, detergentes, blancos (sábanas/toallas), amenidades y reposición rápida de stock.',
+    icono: 'sparkles'
+  },
+  'c0000000-0000-4000-8000-000000000001': {
+    nombre: 'Mantenimiento e Ingeniería',
+    descripcion: 'Aires acondicionados, bombas de piscina, grupos electrógenos, ascensores y repuestos técnicos.',
+    icono: 'wrench'
+  },
+  'c0000000-0000-4000-8000-000000000005': {
+    nombre: 'Tecnología y Sistemas',
+    descripcion: 'Software hotelero (PMS), infraestructura Wi-Fi, cerraduras electrónicas y CCTV perimetral.',
+    icono: 'laptop'
+  },
+  'c0000000-0000-4000-8000-000000000002': {
+    nombre: 'Servicios Subcontratados',
+    descripcion: 'Seguridad privada, vigilancia armada, jardinería exterior, transporte VIP y outsourcing.',
+    icono: 'handshake'
+  }
+};
+
+const ORDEN_MACRO_CATEGORIAS = [
+  'c0000000-0000-4000-8000-000000000004',
+  'c0000000-0000-4000-8000-000000000003',
+  'c0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000005',
+  'c0000000-0000-4000-8000-000000000002'
+];
+
 @Injectable({ providedIn: 'root' })
 export class ServiciosExternosService {
   private readonly supabaseService = inject(SupabaseService);
@@ -47,15 +83,39 @@ export class ServiciosExternosService {
   }
 
   listarCategorias(): Observable<CategoriaServicio[]> {
+    const fallbackCategorias: CategoriaServicio[] = ORDEN_MACRO_CATEGORIAS.map((id) => ({
+      id,
+      nombre: MACRO_CATEGORIAS_CATALOGO[id].nombre,
+      descripcion: MACRO_CATEGORIAS_CATALOGO[id].descripcion,
+      icono: MACRO_CATEGORIAS_CATALOGO[id].icono,
+      activo: true,
+      created_at: '2026-01-01T00:00:00.000Z'
+    }));
+
     if (!this.categoriasCache$) {
       if (!this.supabase) {
-        this.categoriasCache$ = of([]).pipe(shareReplay(1));
+        this.categoriasCache$ = of(fallbackCategorias).pipe(shareReplay(1));
       } else {
         this.categoriasCache$ = from(
-          this.supabase.from('categorias_servicio').select('*').order('nombre')
+          this.supabase.from('categorias_servicio').select('*')
         ).pipe(
-          map((res) => this.extraerDatos<CategoriaServicio>(res)),
-          catchError(() => of([])),
+          map((res) => {
+            const extraidas = this.extraerDatos<CategoriaServicio>(res);
+            if (!extraidas || extraidas.length === 0) {
+              return fallbackCategorias;
+            }
+            return extraidas.map((c) => {
+              const macro = MACRO_CATEGORIAS_CATALOGO[c.id];
+              return macro
+                ? { ...c, nombre: macro.nombre, descripcion: macro.descripcion, icono: macro.icono }
+                : c;
+            }).sort((a, b) => {
+              const idxA = ORDEN_MACRO_CATEGORIAS.indexOf(a.id);
+              const idxB = ORDEN_MACRO_CATEGORIAS.indexOf(b.id);
+              return (idxA >= 0 ? idxA : 99) - (idxB >= 0 ? idxB : 99);
+            });
+          }),
+          catchError(() => of(fallbackCategorias)),
           shareReplay(1)
         );
       }
@@ -107,10 +167,27 @@ export class ServiciosExternosService {
     } catch {}
   }
 
+  private normalizarSolicitud(s: SolicitudCotizacion): SolicitudCotizacion {
+    if (!s) return s;
+    if (s.categoria && MACRO_CATEGORIAS_CATALOGO[s.categoria.id]) {
+      const macro = MACRO_CATEGORIAS_CATALOGO[s.categoria.id];
+      return {
+        ...s,
+        categoria: {
+          ...s.categoria,
+          nombre: macro.nombre,
+          descripcion: macro.descripcion,
+          icono: macro.icono
+        }
+      };
+    }
+    return s;
+  }
+
   private obtenerSolicitudesCache(): Observable<SolicitudCotizacion[]> {
     if (!this.solicitudesCache$) {
       if (!this.supabase) {
-        this.solicitudesCache$ = of(this.obtenerSolicitudesDeStorage()).pipe(shareReplay(1));
+        this.solicitudesCache$ = of(this.obtenerSolicitudesDeStorage().map((s) => this.normalizarSolicitud(s))).pipe(shareReplay(1));
       } else {
         this.solicitudesCache$ = from(
           this.supabase
@@ -120,10 +197,10 @@ export class ServiciosExternosService {
         ).pipe(
           map((res) => {
             const datos = this.extraerDatos<SolicitudCotizacion>(res);
-            const validas = datos.filter((s) => !!s && !!s.id && !!s.titulo);
-            return validas.length > 0 ? validas : this.obtenerSolicitudesDeStorage();
+            const validas = datos.filter((s) => !!s && !!s.id && !!s.titulo).map((s) => this.normalizarSolicitud(s));
+            return validas.length > 0 ? validas : this.obtenerSolicitudesDeStorage().map((s) => this.normalizarSolicitud(s));
           }),
-          catchError(() => of(this.obtenerSolicitudesDeStorage())),
+          catchError(() => of(this.obtenerSolicitudesDeStorage().map((s) => this.normalizarSolicitud(s)))),
           shareReplay(1)
         );
       }
@@ -390,7 +467,7 @@ export class ServiciosExternosService {
         .single()
         .then((res: RespuestaSupabase) => {
           if (res.error) throw res.error;
-          const creada = res.data as SolicitudCotizacion;
+          const creada = this.normalizarSolicitud(res.data as SolicitudCotizacion);
           this.guardarSolicitudEnStorage(creada);
           return creada;
         })

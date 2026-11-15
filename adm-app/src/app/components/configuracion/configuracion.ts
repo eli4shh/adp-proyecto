@@ -5,7 +5,11 @@ import { Router, RouterLink } from '@angular/router';
 import Swal from 'sweetalert2';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../../core/services/auth.service';
-import { EvaluacionService, PesosEvaluacion, PESOS_POR_DEFECTO } from '../../services/evaluacion.service';
+import {
+  EvaluacionService,
+  PesosEvaluacion,
+  ConfiguracionCategoria
+} from '../../services/evaluacion.service';
 
 @Component({
   selector: 'app-configuracion',
@@ -15,11 +19,14 @@ import { EvaluacionService, PesosEvaluacion, PESOS_POR_DEFECTO } from '../../ser
   styleUrls: ['./configuracion.css']
 })
 export class ConfiguracionComponent implements OnInit {
-  // Valores en porcentaje (0 - 100)
-  pesoCosto = 35;
-  pesoExperiencia = 25;
-  pesoDisponibilidad = 20;
-  pesoHistorico = 20;
+  categoriasDisponibles: ConfiguracionCategoria[] = [];
+  categoriaSeleccionadaId = 'c0000000-0000-4000-8000-000000000004';
+
+  // Valores en porcentaje (0 - 100) para la categoría activa
+  pesoCosto = 25;
+  pesoExperiencia = 20;
+  pesoDisponibilidad = 30;
+  pesoHistorico = 25;
 
   guardadoExitoso = false;
 
@@ -30,7 +37,24 @@ export class ConfiguracionComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    const p = this.evaluacionService.getPesos();
+    this.categoriasDisponibles = this.evaluacionService.getListaCategoriasConfigurables();
+    if (this.categoriasDisponibles.length > 0) {
+      this.categoriaSeleccionadaId = this.categoriasDisponibles[0].id;
+      this.cargarPesosDeCategoria(this.categoriaSeleccionadaId);
+    }
+  }
+
+  get categoriaActual(): ConfiguracionCategoria | undefined {
+    return this.categoriasDisponibles.find((c) => c.id === this.categoriaSeleccionadaId);
+  }
+
+  seleccionarCategoria(id: string) {
+    this.categoriaSeleccionadaId = id;
+    this.cargarPesosDeCategoria(id);
+  }
+
+  cargarPesosDeCategoria(id: string) {
+    const p = this.evaluacionService.getPesosDeCategoria(id);
     this.pesoCosto = Math.round(p.costo * 100);
     this.pesoExperiencia = Math.round(p.experiencia * 100);
     this.pesoDisponibilidad = Math.round(p.disponibilidad * 100);
@@ -51,16 +75,18 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   restablecer() {
-    this.pesoCosto = Math.round(PESOS_POR_DEFECTO.costo * 100);
-    this.pesoExperiencia = Math.round(PESOS_POR_DEFECTO.experiencia * 100);
-    this.pesoDisponibilidad = Math.round(PESOS_POR_DEFECTO.disponibilidad * 100);
-    this.pesoHistorico = Math.round(PESOS_POR_DEFECTO.historico * 100);
-    this.evaluacionService.restablecerPesos();
+    const p = this.evaluacionService.restablecerPesosCategoria(this.categoriaSeleccionadaId);
+    this.pesoCosto = Math.round(p.costo * 100);
+    this.pesoExperiencia = Math.round(p.experiencia * 100);
+    this.pesoDisponibilidad = Math.round(p.disponibilidad * 100);
+    this.pesoHistorico = Math.round(p.historico * 100);
+    this.categoriasDisponibles = this.evaluacionService.getListaCategoriasConfigurables();
+
     Swal.fire({
       icon: 'info',
       title: 'Valores restablecidos',
-      text: 'Se aplicaron los pesos recomendados por defecto (35% / 25% / 20% / 20%).',
-      timer: 1500,
+      text: `Se aplicaron las ponderaciones recomendadas para "${this.categoriaActual?.nombre}".`,
+      timer: 1600,
       showConfirmButton: false
     });
   }
@@ -82,15 +108,16 @@ export class ConfiguracionComponent implements OnInit {
       historico: this.pesoHistorico / 100
     };
 
-    this.evaluacionService.setPesos(nuevosPesos);
+    this.evaluacionService.setPesosDeCategoria(this.categoriaSeleccionadaId, nuevosPesos);
+    this.categoriasDisponibles = this.evaluacionService.getListaCategoriasConfigurables();
     this.guardadoExitoso = true;
     setTimeout(() => (this.guardadoExitoso = false), 4000);
 
     Swal.fire({
       icon: 'success',
       title: 'Configuración guardada',
-      text: 'Los nuevos pesos impactan de forma inmediata en las evaluaciones de cotizaciones.',
-      timer: 1800,
+      text: `Se actualizaron las ponderaciones para "${this.categoriaActual?.nombre}". Al crear licitaciones de este rubro se aplicarán en tiempo real.`,
+      timer: 2200,
       showConfirmButton: false
     });
   }

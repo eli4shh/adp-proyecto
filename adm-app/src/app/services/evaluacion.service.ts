@@ -1,19 +1,17 @@
 import { Injectable } from '@angular/core';
+import { Subject, Observable } from 'rxjs';
 import { PropuestaCotizacion } from '../interfaces/servicios-externos';
 
 /**
- * Algoritmo de evaluación multicriterio ponderado.
+ * Algoritmo de evaluación multicriterio ponderado (AHP).
  *
- * Criterios por defecto:
- *  - Costo                  35%  (menor es mejor)
- *  - Experiencia            25%  (mayor es mejor — años del proveedor)
- *  - Disponibilidad/Tiempo  20%  (menor es mejor — días de entrega)
- *  - Evaluación histórica   20%  (mayor es mejor — rating 0 a 5 del proveedor)
+ * Criterios evaluados:
+ *  - Costo                  (menor es mejor)
+ *  - Experiencia            (mayor es mejor — años del proveedor)
+ *  - Disponibilidad/Tiempo  (menor es mejor — días de entrega)
+ *  - Evaluación histórica   (mayor es mejor — rating 0 a 5 del proveedor)
  *
- * Todos los criterios se normalizan a escala 0 – 100:
- *  - Costo y Tiempo: min-max invertido (menor valor ⇒ 100).
- *  - Experiencia: min-max directo (mayor valor ⇒ 100).
- *  - Histórico: conversión absoluta de su escala 1–5 (calificación / 5 × 100).
+ * Todos los criterios se normalizan a escala 0 – 100.
  */
 
 export interface PesosEvaluacion {
@@ -21,6 +19,14 @@ export interface PesosEvaluacion {
   experiencia: number;    /* 0 – 1 */
   disponibilidad: number; /* 0 – 1 */
   historico: number;      /* 0 – 1 */
+}
+
+export interface ConfiguracionCategoria {
+  id: string;
+  nombre: string;
+  icono: string;
+  descripcion: string;
+  pesos: PesosEvaluacion;
 }
 
 export interface PuntajesCriterios {
@@ -61,6 +67,44 @@ export const PESOS_POR_DEFECTO: PesosEvaluacion = {
   historico: 0.2
 };
 
+export const CONFIGURACIONES_CATEGORIA_DEFECTO: Record<string, ConfiguracionCategoria> = {
+  'c0000000-0000-4000-8000-000000000004': {
+    id: 'c0000000-0000-4000-8000-000000000004',
+    nombre: 'Alimentos y Bebidas',
+    icono: 'utensils',
+    descripcion: 'Catering, carnes, mariscos, licores, insumos frescos y control estricto de cadena de frío.',
+    pesos: { costo: 0.25, experiencia: 0.20, disponibilidad: 0.30, historico: 0.25 }
+  },
+  'c0000000-0000-4000-8000-000000000003': {
+    id: 'c0000000-0000-4000-8000-000000000003',
+    nombre: 'Housekeeping y Limpieza',
+    icono: 'sparkles',
+    descripcion: 'Químicos, detergentes, blancos (sábanas/toallas), amenidades y reposición rápida de stock.',
+    pesos: { costo: 0.45, experiencia: 0.15, disponibilidad: 0.25, historico: 0.15 }
+  },
+  'c0000000-0000-4000-8000-000000000001': {
+    id: 'c0000000-0000-4000-8000-000000000001',
+    nombre: 'Mantenimiento e Ingeniería',
+    icono: 'wrench',
+    descripcion: 'Aires acondicionados, bombas de piscina, grupos electrógenos, ascensores y repuestos técnicos.',
+    pesos: { costo: 0.20, experiencia: 0.40, disponibilidad: 0.25, historico: 0.15 }
+  },
+  'c0000000-0000-4000-8000-000000000005': {
+    id: 'c0000000-0000-4000-8000-000000000005',
+    nombre: 'Tecnología y Sistemas',
+    icono: 'laptop',
+    descripcion: 'Software hotelero (PMS), infraestructura Wi-Fi, cerraduras electrónicas y CCTV perimetral.',
+    pesos: { costo: 0.20, experiencia: 0.45, disponibilidad: 0.15, historico: 0.20 }
+  },
+  'c0000000-0000-4000-8000-000000000002': {
+    id: 'c0000000-0000-4000-8000-000000000002',
+    nombre: 'Servicios Subcontratados',
+    icono: 'handshake',
+    descripcion: 'Seguridad privada, vigilancia, jardinería exterior, transporte VIP y outsourcing calificado.',
+    pesos: { costo: 0.25, experiencia: 0.35, disponibilidad: 0.15, historico: 0.25 }
+  }
+};
+
 const LABEL_CRITERION: Record<keyof PuntajesCriterios, string> = {
   costo: 'Costo',
   experiencia: 'Experiencia',
@@ -68,9 +112,104 @@ const LABEL_CRITERION: Record<keyof PuntajesCriterios, string> = {
   historico: 'Evaluación histórica'
 };
 
+const STORAGE_PESOS_CATEGORIAS_KEY = 'gm_pesos_categorias_v2';
+
 @Injectable({ providedIn: 'root' })
 export class EvaluacionService {
   private pesosActuales: PesosEvaluacion = { ...PESOS_POR_DEFECTO };
+  private pesosCategorias: Record<string, PesosEvaluacion> = {};
+
+  private readonly cambioPesosSubject = new Subject<void>();
+  readonly cambioPesos$: Observable<void> = this.cambioPesosSubject.asObservable();
+
+  constructor() {
+    this.cargarPesosDeStorage();
+  }
+
+  private cargarPesosDeStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem(STORAGE_PESOS_CATEGORIAS_KEY);
+        if (raw) {
+          this.pesosCategorias = JSON.parse(raw);
+        }
+      }
+    } catch {
+      this.pesosCategorias = {};
+    }
+  }
+
+  private guardarPesosEnStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(STORAGE_PESOS_CATEGORIAS_KEY, JSON.stringify(this.pesosCategorias));
+      }
+    } catch {}
+  }
+
+  getListaCategoriasConfigurables(): ConfiguracionCategoria[] {
+    return Object.values(CONFIGURACIONES_CATEGORIA_DEFECTO).map((cfg) => {
+      const personalizados = this.pesosCategorias[cfg.id];
+      return {
+        ...cfg,
+        pesos: personalizados ? { ...personalizados } : { ...cfg.pesos }
+      };
+    });
+  }
+
+  getPesosDeCategoria(categoriaIdOrNombre?: string | null): PesosEvaluacion {
+    if (!categoriaIdOrNombre) return this.getPesos();
+
+    // 1. Coincidencia exacta por ID
+    if (this.pesosCategorias[categoriaIdOrNombre]) {
+      return { ...this.pesosCategorias[categoriaIdOrNombre] };
+    }
+    const def = CONFIGURACIONES_CATEGORIA_DEFECTO[categoriaIdOrNombre];
+    if (def) {
+      return { ...def.pesos };
+    }
+
+    // 2. Coincidencia por nombre o palabras clave
+    const lower = categoriaIdOrNombre.toLowerCase();
+    for (const [id, config] of Object.entries(CONFIGURACIONES_CATEGORIA_DEFECTO)) {
+      if (config.nombre.toLowerCase().includes(lower) || lower.includes(config.nombre.toLowerCase())) {
+        return { ...(this.pesosCategorias[id] || config.pesos) };
+      }
+    }
+
+    // Mapeo semántico de palabras clave hotel / resort
+    if (lower.includes('cater') || lower.includes('alimento') || lower.includes('bebida') || lower.includes('evento') || lower.includes('a&b') || lower.includes('cocina')) {
+      return { ...(this.pesosCategorias['c0000000-0000-4000-8000-000000000004'] || CONFIGURACIONES_CATEGORIA_DEFECTO['c0000000-0000-4000-8000-000000000004'].pesos) };
+    }
+    if (lower.includes('housekeeping') || lower.includes('limpieza') || lower.includes('blanco') || lower.includes('lavanderia') || lower.includes('amenidad') || lower.includes('detergente')) {
+      return { ...(this.pesosCategorias['c0000000-0000-4000-8000-000000000003'] || CONFIGURACIONES_CATEGORIA_DEFECTO['c0000000-0000-4000-8000-000000000003'].pesos) };
+    }
+    if (lower.includes('mantenimiento') || lower.includes('ingenier') || lower.includes('piscina') || lower.includes('clima') || lower.includes('hvac') || lower.includes('bomba') || lower.includes('ascensor')) {
+      return { ...(this.pesosCategorias['c0000000-0000-4000-8000-000000000001'] || CONFIGURACIONES_CATEGORIA_DEFECTO['c0000000-0000-4000-8000-000000000001'].pesos) };
+    }
+    if (lower.includes('tecnolog') || lower.includes('sistema') || lower.includes('software') || lower.includes('pms') || lower.includes('wifi') || lower.includes('red') || lower.includes('cctv')) {
+      return { ...(this.pesosCategorias['c0000000-0000-4000-8000-000000000005'] || CONFIGURACIONES_CATEGORIA_DEFECTO['c0000000-0000-4000-8000-000000000005'].pesos) };
+    }
+    if (lower.includes('subcontrat') || lower.includes('seguridad') || lower.includes('vigilancia') || lower.includes('jardin') || lower.includes('portero') || lower.includes('outsourcing') || lower.includes('transporte')) {
+      return { ...(this.pesosCategorias['c0000000-0000-4000-8000-000000000002'] || CONFIGURACIONES_CATEGORIA_DEFECTO['c0000000-0000-4000-8000-000000000002'].pesos) };
+    }
+
+    return this.getPesos();
+  }
+
+  setPesosDeCategoria(categoriaId: string, nuevosPesos: PesosEvaluacion): void {
+    this.pesosCategorias[categoriaId] = { ...nuevosPesos };
+    this.guardarPesosEnStorage();
+    this.cambioPesosSubject.next();
+  }
+
+  restablecerPesosCategoria(categoriaId: string): PesosEvaluacion {
+    delete this.pesosCategorias[categoriaId];
+    this.guardarPesosEnStorage();
+    this.cambioPesosSubject.next();
+    const def = CONFIGURACIONES_CATEGORIA_DEFECTO[categoriaId];
+    return def ? { ...def.pesos } : { ...PESOS_POR_DEFECTO };
+  }
 
   getPesos(): PesosEvaluacion {
     return { ...this.pesosActuales };
@@ -78,10 +217,12 @@ export class EvaluacionService {
 
   setPesos(nuevosPesos: PesosEvaluacion): void {
     this.pesosActuales = { ...nuevosPesos };
+    this.cambioPesosSubject.next();
   }
 
   restablecerPesos(): void {
     this.pesosActuales = { ...PESOS_POR_DEFECTO };
+    this.cambioPesosSubject.next();
   }
 
   /**

@@ -85,11 +85,64 @@
       </div>
 
       <!-- Title & Subtitle -->
-      <h1 class="cfg-title">Ponderación de Criterios de Selección</h1>
+      <h1 class="cfg-title">Ponderación de Criterios por Categoría</h1>
       <p class="cfg-subtitle">
-        Ajuste la importancia porcentual de cada variable para el cálculo de adjudicación multicriterio (AHP).
-        La suma total debe ser exactamente 100%.
+        Ajuste la importancia porcentual de cada variable para el cálculo de adjudicación multicriterio (AHP) según el área operativa del pliego.
+        Las licitaciones que se creen en esta categoría heredarán estos parámetros en tiempo real.
       </p>
+
+      <!-- SELECTOR DE CATEGORÍA OPERATIVA (TABS) -->
+      <div class="cfg-tabs-container">
+        <span class="cfg-tabs-label">SELECCIONE LA CATEGORÍA OPERATIVA A CONFIGURAR:</span>
+        <div class="cfg-tabs-list">
+          <button
+            *ngFor="let cat of categoriasDisponibles"
+            type="button"
+            class="cfg-tab"
+            [class.cfg-tab--active]="cat.id === categoriaSeleccionadaId"
+            (click)="seleccionarCategoria(cat.id)">
+            <span class="cfg-tab__icon" [ngSwitch]="cat.icono">
+              <!-- Alimentos y Bebidas -->
+              <svg *ngSwitchCase="'utensils'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
+                <path d="M15 2v19"/>
+                <path d="M6 2v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V2"/>
+                <path d="M8 11v10"/>
+              </svg>
+              <!-- Housekeeping y Limpieza -->
+              <svg *ngSwitchCase="'sparkles'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
+                <path d="M5 3v4"/>
+                <path d="M19 17v4"/>
+                <path d="M3 5h4"/>
+                <path d="M17 19h4"/>
+              </svg>
+              <!-- Mantenimiento e Ingeniería -->
+              <svg *ngSwitchCase="'wrench'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+              <!-- Tecnología y Sistemas -->
+              <svg *ngSwitchCase="'laptop'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="12" rx="2"/>
+                <line x1="2" y1="20" x2="22" y2="20"/>
+              </svg>
+              <!-- Servicios Subcontratados -->
+              <svg *ngSwitchCase="'handshake'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.3-4.3a1 1 0 0 0 0-1.4l-2.6-2.6a1 1 0 0 0-1.4 0l-1.3 1.3"/>
+                <path d="m13 7.1-2.1-2.1a1 1 0 0 0-1.4 0L5.2 9.3a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l1.3-1.3"/>
+                <path d="m13.4 10.6 2.3-2.3"/>
+                <path d="m8.3 15.7 2.3-2.3"/>
+              </svg>
+              <!-- Fallback -->
+              <svg *ngSwitchDefault width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="12 6 12 12 16 14"/>
+              </svg>
+            </span>
+            <span class="cfg-tab__name">{{ cat.nombre }}</span>
+          </button>
+        </div>
+      </div>
 
       <!-- CARD PRINCIPAL -->
       <div class="cfg-card">
@@ -101,10 +154,14 @@
               <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
               <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
             </svg>
-            Distribución de Ponderaciones
+            Ponderaciones para: <span class="cfg-cat-badge">{{ categoriaActual?.nombre }}</span>
           </div>
-          <span class="cfg-badge-rev">● REV-2025.04</span>
+          <span class="cfg-badge-rev">● MATRIZ VIGENTE</span>
         </div>
+
+        <p class="cfg-cat-desc" *ngIf="categoriaActual?.descripcion">
+          {{ categoriaActual?.descripcion }}
+        </p>
 
         <div class="cfg-criterios-list">
 

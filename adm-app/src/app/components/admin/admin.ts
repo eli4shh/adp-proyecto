@@ -68,6 +68,11 @@ export class AdminComponent implements OnInit, OnDestroy {
         }
       })
     );
+    this.suscripciones.push(
+      this.evaluacionService.cambioPesos$.subscribe(() => {
+        this.calcularRanking();
+      })
+    );
     this.cargarDatos();
   }
 
@@ -224,8 +229,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   private calcularRanking() {
+    const pesos = this.solicitudActiva?.categoria_id
+      ? this.evaluacionService.getPesosDeCategoria(this.solicitudActiva.categoria_id)
+      : this.evaluacionService.getPesos();
+
     this.resultados = this.propuestas.length
-      ? this.evaluacionService.evaluarPropuestas(this.propuestas)
+      ? this.evaluacionService.evaluarPropuestas(this.propuestas, pesos)
       : [];
   }
 

@@ -124,4 +124,30 @@ describe('EvaluacionService', () => {
     expect(registros[0].puntaje_final).toBeCloseTo(resultado[0].puntajeFinal, 2);
     expect(typeof registros[0].fecha_evaluacion).toBe('string');
   });
+
+  it('obtiene y actualiza ponderaciones independientes por categoría', () => {
+    const cats = service.getListaCategoriasConfigurables();
+    expect(cats.length).toBe(5);
+
+    const catMantenimiento = cats.find((c) => c.nombre.includes('Mantenimiento e Ingeniería'));
+    expect(catMantenimiento).toBeTruthy();
+    expect(catMantenimiento!.pesos.experiencia).toBe(0.40);
+
+    // Actualizar pesos de Alimentos y Bebidas y verificar
+    const catAybId = 'c0000000-0000-4000-8000-000000000004';
+    service.setPesosDeCategoria(catAybId, {
+      costo: 0.35,
+      experiencia: 0.15,
+      disponibilidad: 0.30,
+      historico: 0.20
+    });
+
+    const pesosActualizados = service.getPesosDeCategoria(catAybId);
+    expect(pesosActualizados.costo).toBe(0.35);
+
+    // Restablecer
+    service.restablecerPesosCategoria(catAybId);
+    const pesosRestablecidos = service.getPesosDeCategoria(catAybId);
+    expect(pesosRestablecidos.costo).toBe(0.25);
+  });
 });

@@ -72,7 +72,7 @@
                   <span class="nl-label-hint">Preciso, claro y de carácter contractual</span>
                 </div>
                 <input id="nl-titulo" formControlName="titulo" type="text" class="nl-input"
-                  placeholder="Ej: Servicio Integral de Mantenimiento Preventivo y Químico para Piscinas" />
+                  placeholder="Ej: Suministro Integral de Alimentos y Bebidas para Temporada Alta" />
                 <span class="nl-error" *ngIf="f['titulo'].invalid && f['titulo'].touched">
                   Indique el título o requerimiento de la licitación.
                 </span>
@@ -104,7 +104,7 @@
                   <span class="nl-label-hint">Términos de Referencia</span>
                 </div>
                 <textarea id="nl-descripcion" formControlName="descripcion" rows="4" class="nl-textarea"
-                  placeholder="El proveedor seleccionado se encargará del suministro de insumos químicos certificados (grado hotelero), calibración semanal de bombas dosificadoras, mantenimiento electromecánico de sala de máquinas y reporte diario de niveles de pH, cloro libre y turbidez en las 5 piscinas recreativas..."></textarea>
+                  placeholder="El postor adjudicado garantizará el cumplimiento estricto de los estándares operativos hoteleros, trazabilidad, entregas programadas y especificaciones técnicas detalladas en las bases del requerimiento..."></textarea>
                 <span class="nl-error" *ngIf="f['descripcion'].invalid && f['descripcion'].touched">
                   Describa las especificaciones técnicas del servicio.
                 </span>
@@ -198,14 +198,22 @@
                 </div>
                 <div>
                   <div class="nl-algo-title">
-                    Algoritmo Multicriterio AHP Estándar
-                    <span class="nl-badge-active">ACTIVO</span>
+                    Matriz AHP Estandarizada — <strong>{{ nombreCategoriaSeleccionada }}</strong>
+                    <span class="nl-badge-active">ACTIVA</span>
                   </div>
                   <div class="nl-algo-weights">
-                    Ponderación automatizada: Costo 35%, Experiencia Hotelera 25%, Tiempo Entrega 20%, Histórico de Cumplimiento 20%.
+                    Ponderación automática: Costo {{ pesoCosto }}%, Experiencia {{ pesoExperiencia }}%, Tiempo Entrega {{ pesoDisponibilidad }}%, Histórico {{ pesoHistorico }}%.
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Barra Proporcional Visual -->
+            <div class="nl-prog-bar">
+              <div class="nl-prog-segment nl-prog--blue" [style.width.%]="pesoCosto" [title]="'Costo ' + pesoCosto + '%'"></div>
+              <div class="nl-prog-segment nl-prog--green" [style.width.%]="pesoExperiencia" [title]="'Experiencia ' + pesoExperiencia + '%'"></div>
+              <div class="nl-prog-segment nl-prog--amber" [style.width.%]="pesoDisponibilidad" [title]="'Tiempo ' + pesoDisponibilidad + '%'"></div>
+              <div class="nl-prog-segment nl-prog--purple" [style.width.%]="pesoHistorico" [title]="'Histórico ' + pesoHistorico + '%'"></div>
             </div>
 
             <!-- Requisitos checkboxes -->
@@ -219,13 +227,24 @@
                     <span>Verificación automática vía padrón en línea</span>
                   </div>
                 </label>
-                <label class="nl-checkbox-label">
+
+                <!-- CONTROL EDITABLE DE AÑOS MÍNIMOS -->
+                <div class="nl-checkbox-label nl-checkbox-label--editable">
                   <input type="checkbox" checked disabled />
-                  <div>
-                    <strong>Mínimo 3 años en sector hotelero</strong>
-                    <span>Con contratos auditables en resorts o cadenas</span>
+                  <div class="nl-stepper-wrap">
+                    <div class="nl-stepper-row">
+                      <span class="nl-stepper-txt">Mínimo</span>
+                      <div class="nl-stepper-box">
+                        <button type="button" class="nl-stepper-btn" (click)="cambiarAnios(-1)">−</button>
+                        <input type="number" formControlName="anios_experiencia_minimos" class="nl-stepper-input nl-mono" min="0" max="30" />
+                        <button type="button" class="nl-stepper-btn" (click)="cambiarAnios(1)">+</button>
+                      </div>
+                      <span class="nl-stepper-txt">años en el rubro</span>
+                    </div>
+                    <span class="nl-stepper-hint">Con contratos auditables en resorts o cadenas</span>
                   </div>
-                </label>
+                </div>
+
                 <label class="nl-checkbox-label">
                   <input type="checkbox" checked />
                   <div>
@@ -233,6 +252,7 @@
                     <span>Cobertura no menor a US$ 100,000</span>
                   </div>
                 </label>
+
                 <label class="nl-checkbox-label">
                   <input type="checkbox" />
                   <div>
@@ -260,9 +280,9 @@
 
             <div class="nl-preview-chips">
               <span class="nl-preview-chip nl-preview-chip--cat">
-                {{ f['categoria_id'].value ? 'Categoría Asignada' : 'Sin categoría' }}
+                {{ nombreCategoriaSeleccionada }}
               </span>
-              <span class="nl-preview-chip nl-preview-chip--code">LIC-2025-016</span>
+              <span class="nl-preview-chip nl-preview-chip--code">LIC-2025-GMR</span>
             </div>
 
             <div class="nl-preview-stats">
@@ -283,12 +303,12 @@
             </div>
 
             <div class="nl-preview-weights">
-              <span class="nl-pweights-label">PONDERACIÓN ALGORÍTMICA · AHP v2.4</span>
+              <span class="nl-pweights-label">PONDERACIÓN ALGORÍTMICA · AHP</span>
               <div class="nl-pweights-chips">
-                <span>● Costo 35%</span>
-                <span>● Experiencia 25%</span>
-                <span>● Plazo 20%</span>
-                <span>● Histórico 20%</span>
+                <span>● Costo {{ pesoCosto }}%</span>
+                <span>● Experiencia {{ pesoExperiencia }}%</span>
+                <span>● Plazo {{ pesoDisponibilidad }}%</span>
+                <span>● Histórico {{ pesoHistorico }}%</span>
               </div>
             </div>
 
