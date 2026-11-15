@@ -121,16 +121,27 @@ export class PanelComponent implements OnInit, OnDestroy {
 
   propuestasDe(solicitudId: string): PropuestaCotizacion[] {
     const list = this.propuestasPorSolicitud.get(solicitudId) ?? [];
+    if (!list.length) return [];
     const ranking = this.rankingPorSolicitud.get(solicitudId);
     const sol = this.solicitudes.find((s) => s.id === solicitudId);
 
-    // Ordenar con lógica estricta:
-    // Si la licitación está cerrada: el adjudicado va primero obligatoriamente.
-    // Luego, los demás ordenados descendentemente por su puntaje final del ranking AHP.
+    // Identificar ganador directamente desde la lista en memoria (evita recursión infinita)
+    let ganadorId: string | undefined;
+    if (sol?.estado === 'cerrada') {
+      const seleccionada = list.find((p) => p.estado === 'seleccionada');
+      if (seleccionada) {
+        ganadorId = seleccionada.id;
+      } else if (ranking && ranking.length > 0) {
+        ganadorId = ranking[0].propuesta.id;
+      } else if (list.length > 0) {
+        ganadorId = list[0].id;
+      }
+    }
+
     return [...list].sort((a, b) => {
-      if (sol?.estado === 'cerrada') {
-        const aWin = a.estado === 'seleccionada' || this.esGanador(a, sol);
-        const bWin = b.estado === 'seleccionada' || this.esGanador(b, sol);
+      if (ganadorId) {
+        const aWin = a.id === ganadorId;
+        const bWin = b.id === ganadorId;
         if (aWin && !bWin) return -1;
         if (!aWin && bWin) return 1;
       }
@@ -232,7 +243,7 @@ export class PanelComponent implements OnInit, OnDestroy {
   }
 
   proveedorGanador(sol: SolicitudCotizacion): PropuestaCotizacion | undefined {
-    const props = this.propuestasDe(sol.id);
+    const props = this.propuestasPorSolicitud.get(sol.id) ?? [];
     if (!props.length) return undefined;
     const seleccionada = props.find((p) => p.estado === 'seleccionada');
     if (seleccionada) return seleccionada;
