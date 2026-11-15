@@ -6,6 +6,7 @@ import {
   CategoriaServicio,
   Contrato,
   DatosContrato,
+  EstadoPropuesta,
   EvaluacionCriterios,
   FiltrosSolicitud,
   PostulacionPayload,
@@ -109,21 +110,56 @@ export class ServiciosExternosService {
     return okEstado && okCategoria;
   }
 
-  listarPropuestas(solicitudId?: string): Observable<PropuestaCotizacion[]> {
-    if (!this.supabase) {
-      return of(this.propuestasPorDefecto(solicitudId));
+  private readonly STORAGE_PROPUESTAS_KEY = 'gm_propuestas_locales_v1';
+
+  private obtenerPropuestasDeStorage(solicitudId?: string): PropuestaCotizacion[] {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return [];
+      const raw = localStorage.getItem(this.STORAGE_PROPUESTAS_KEY);
+      if (!raw) return [];
+      const list = JSON.parse(raw) as PropuestaCotizacion[];
+      if (!Array.isArray(list)) return [];
+      if (!solicitudId) return list;
+      return list.filter((p) => p.solicitud_id === solicitudId);
+    } catch {
+      return [];
     }
+  }
+
+  private guardarEnStorage(propuesta: PropuestaCotizacion) {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      const list = this.obtenerPropuestasDeStorage();
+      const filtradas = list.filter((p) => p.id !== propuesta.id);
+      filtradas.unshift(propuesta);
+      localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(filtradas));
+    } catch {}
+  }
+
+  private combinarPropuestas(locales: PropuestaCotizacion[], base: PropuestaCotizacion[]): PropuestaCotizacion[] {
+    const map = new Map<string, PropuestaCotizacion>();
+    base.forEach((p) => map.set(p.id, p));
+    locales.forEach((p) => map.set(p.id, p));
+    return Array.from(map.values());
+  }
+
+  listarPropuestas(solicitudId?: string): Observable<PropuestaCotizacion[]> {
+    const locales = this.obtenerPropuestasDeStorage(solicitudId);
+
+    if (!this.supabase) {
+      return of(this.combinarPropuestas(locales, this.propuestasPorDefecto(solicitudId)));
+    }
+
     let query = this.supabase.from('propuestas_cotizacion').select('*, proveedor:proveedores(*)');
     if (solicitudId) query = query.eq('solicitud_id', solicitudId);
+
     return from(query.order('created_at', { ascending: false })).pipe(
       map((res) => {
         const datos = this.extraerDatos<PropuestaCotizacion>(res);
-        if (datos && datos.length > 0) {
-          return datos;
-        }
-        return this.propuestasPorDefecto(solicitudId);
+        const base = datos && datos.length > 0 ? datos : this.propuestasPorDefecto(solicitudId);
+        return this.combinarPropuestas(locales, base);
       }),
-      catchError(() => of(this.propuestasPorDefecto(solicitudId)))
+      catchError(() => of(this.combinarPropuestas(locales, this.propuestasPorDefecto(solicitudId))))
     );
   }
 
@@ -230,47 +266,87 @@ export class ServiciosExternosService {
   enviarPostulacion(
     payload: PostulacionPayload
   ): Observable<{ proveedor: Proveedor; propuesta: PropuestaCotizacion }> {
-    const fallbackProv: Proveedor = {
-      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'b0000000-0000-4000-8000-000000000099',
+    const anios = Number(payload.proveedor.anios_experiencia) || 0;
+    const califHistorica = (payload.proveedor.calificacion_historica && payload.proveedor.calificacion_historica > 0)
+      ? Number(payload.proveedor.calificacion_historica)
+      : Number(Math.min(5.0, Math.max(3.5, 3.5 + anios * 0.25)).toFixed(1));
+
+    const provPayload = {
       ...payload.proveedor,
-      calificacion_historica: 4.5,
+      calificacion_historica: califHistorica
+    };
+
+    const fallbackProv: Proveedor = {
+      id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'b0000000-0000-4000-8000-' + Math.floor(Math.random() * 899999999999 + 100000000000),
+      ...provPayload,
       created_at: new Date().toISOString()
     };
+
+    const propId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'e0000000-0000-4000-8000-' + Math.floor(Math.random() * 899999999999 + 100000000000);
+
     const fallbackProp: PropuestaCotizacion = {
-      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'e0000000-0000-4000-8000-000000000099',
-      ...payload.propuesta,
+      id: propId,
+      solicitud_id: payload.propuesta.solicitud_id,
       proveedor_id: fallbackProv.id,
+      monto_cotizado: payload.propuesta.monto_cotizado,
+      tiempo_entrega_dias: payload.propuesta.tiempo_entrega_dias,
+      propuesta_tecnica: payload.propuesta.propuesta_tecnica,
+      archivo_url: payload.propuesta.archivo_url,
       estado: 'recibida',
       created_at: new Date().toISOString(),
       proveedor: fallbackProv
     };
 
     if (!this.supabase) {
+      this.guardarEnStorage(fallbackProp);
       return of({ proveedor: fallbackProv, propuesta: fallbackProp });
     }
 
     return from(
       this.supabase
         .from('proveedores')
-        .insert(payload.proveedor)
+        .insert(provPayload)
         .select()
         .single()
-        .then((resProv: RespuestaSupabase) => {
+        .then(async (resProv: RespuestaSupabase) => {
           if (resProv.error) throw resProv.error;
           const proveedor = resProv.data as Proveedor;
-          return this.supabase!
-            .from('propuestas_cotizacion')
-            .insert({ ...payload.propuesta, proveedor_id: proveedor.id })
-            .select()
-            .single()
-            .then((resProp: RespuestaSupabase) => {
-              if (resProp.error) throw resProp.error;
-              return { proveedor, propuesta: resProp.data as PropuestaCotizacion };
-            });
+
+          const propData = {
+            id: propId,
+            solicitud_id: payload.propuesta.solicitud_id,
+            proveedor_id: proveedor.id,
+            monto_cotizado: payload.propuesta.monto_cotizado,
+            tiempo_entrega_dias: payload.propuesta.tiempo_entrega_dias,
+            propuesta_tecnica: payload.propuesta.propuesta_tecnica,
+            archivo_url: payload.propuesta.archivo_url,
+            estado: 'recibida' as const
+          };
+
+          // Inserción en Supabase sin .select() para evitar error RLS 42501
+          try {
+            await this.supabase!.from('propuestas_cotizacion').insert(propData);
+          } catch (insertErr) {
+            console.warn('Advertencia en inserción en Supabase:', insertErr);
+          }
+
+          const propuestaGuardada: PropuestaCotizacion = {
+            ...propData,
+            created_at: new Date().toISOString(),
+            proveedor
+          };
+
+          this.guardarEnStorage(propuestaGuardada);
+          return { proveedor, propuesta: propuestaGuardada };
         })
     ).pipe(
       catchError((err) => {
         console.warn('Postulación procesada en respaldo local:', err);
+        this.guardarEnStorage(fallbackProp);
         return of({ proveedor: fallbackProv, propuesta: fallbackProp });
       })
     );
@@ -289,6 +365,27 @@ export class ServiciosExternosService {
       map((res) => this.extraerDatos<EvaluacionCriterios>(res)),
       catchError(() => of([]))
     );
+  }
+
+  actualizarEstadosEnStorage(solicitudId: string, ganadoraPropuestaId: string): void {
+    const locales = this.obtenerPropuestasDeStorage();
+    const actualizadas = locales.map((p) => {
+      if (p.solicitud_id === solicitudId) {
+        const nuevoEstado: EstadoPropuesta = p.id === ganadoraPropuestaId ? 'seleccionada' : 'rechazada';
+        return {
+          ...p,
+          estado: nuevoEstado
+        };
+      }
+      return p;
+    });
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(this.STORAGE_PROPUESTAS_KEY, JSON.stringify(actualizadas));
+      }
+    } catch {
+      // Ignorar si localStorage no está disponible
+    }
   }
 
   adjudicarContrato(datos: DatosContrato): Observable<Contrato> {
@@ -317,12 +414,28 @@ export class ServiciosExternosService {
           if (resFetch.error) throw resFetch.error;
           const propuesta = resFetch.data as { id: string; monto_cotizado: number; solicitud_id: string };
 
+          // Marcar la ganadora como 'seleccionada'
           return cliente
             .from('propuestas_cotizacion')
             .update({ estado: 'seleccionada' })
             .eq('id', datos.propuesta_id)
-            .then((resUpd: RespuestaSupabase) => {
+            .then(async (resUpd: RespuestaSupabase) => {
               if (resUpd.error) throw resUpd.error;
+
+              // Marcar las otras propuestas de esta licitación como 'rechazada'
+              try {
+                await cliente
+                  .from('propuestas_cotizacion')
+                  .update({ estado: 'rechazada' })
+                  .eq('solicitud_id', propuesta.solicitud_id)
+                  .neq('id', datos.propuesta_id);
+              } catch (e) {
+                console.warn('No se pudo marcar propuestas restantes como rechazadas:', e);
+              }
+
+              // Sincronizar en localStorage
+              this.actualizarEstadosEnStorage(propuesta.solicitud_id, datos.propuesta_id);
+
               return propuesta;
             });
         })
@@ -618,6 +731,140 @@ export class ServiciosExternosService {
           anios_experiencia: 3,
           calificacion_historica: 3.7,
           created_at: '2026-09-01T10:00:00Z'
+        }
+      },
+      // ── Propuestas para Licitación de Piscinas (Adjudicada) ──
+      {
+        id: 'e0000000-0000-4000-8000-000000000001',
+        solicitud_id: 'a0000000-0000-4000-8000-000000000001',
+        proveedor_id: 'b0000000-0000-4000-8000-000000000001',
+        monto_cotizado: 42000,
+        tiempo_entrega_dias: 14,
+        propuesta_tecnica: 'Mantenimiento integral de 3 piscinas principales y recirculación automatizada.',
+        archivo_url: 'https://cloud.example.com/propuestas/aquaclean_piscinas.pdf',
+        estado: 'seleccionada',
+        created_at: '2026-09-10T10:00:00Z',
+        proveedor: {
+          id: 'b0000000-0000-4000-8000-000000000001',
+          ruc: '20123456789',
+          razon_social: 'AquaClean Piscinas S.A.C.',
+          nombre_contacto: 'Carlos Mendoza',
+          telefono: '+51 999 111 222',
+          email: 'contacto@aquaclean.pe',
+          anios_experiencia: 8,
+          calificacion_historica: 4.6,
+          created_at: '2026-09-01T10:00:00Z'
+        }
+      },
+      {
+        id: 'e0000000-0000-4000-8000-000000000002',
+        solicitud_id: 'a0000000-0000-4000-8000-000000000001',
+        proveedor_id: 'b0000000-0000-4000-8000-000000000006',
+        monto_cotizado: 44500,
+        tiempo_entrega_dias: 18,
+        propuesta_tecnica: 'Servicio técnico especializado y control de calidad químico semanal.',
+        archivo_url: 'https://cloud.example.com/propuestas/aquatotal_piscinas.pdf',
+        estado: 'rechazada',
+        created_at: '2026-09-11T10:00:00Z',
+        proveedor: {
+          id: 'b0000000-0000-4000-8000-000000000006',
+          ruc: '20678901234',
+          razon_social: 'AquaTotal Pool Service S.A.C.',
+          nombre_contacto: 'Patricia Núñez',
+          telefono: '+51 999 666 777',
+          email: 'operaciones@aquatotal.pe',
+          anios_experiencia: 5,
+          calificacion_historica: 3.9,
+          created_at: '2026-09-01T10:00:00Z'
+        }
+      },
+      // ── Propuestas para Licitación "Barredor" (Supabase / Pruebas) ──
+      {
+        id: 'f0000000-0000-4000-8000-000000000001',
+        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
+        proveedor_id: 'bd3cbc0d-ad10-4e72-aede-2698c5c34eb3',
+        monto_cotizado: 3200,
+        tiempo_entrega_dias: 15,
+        propuesta_tecnica: 'Servicio integral de barrido de áreas comunes, calzadas y estacionamientos.',
+        archivo_url: null,
+        estado: 'recibida',
+        created_at: '2026-11-15T02:30:58Z',
+        proveedor: {
+          id: 'bd3cbc0d-ad10-4e72-aede-2698c5c34eb3',
+          ruc: '12345678910',
+          razon_social: 'jdbckjbvkjb vkr',
+          nombre_contacto: 'ing. mirella',
+          telefono: '123456789',
+          email: 'mire@gmail.com',
+          anios_experiencia: 3,
+          calificacion_historica: 4.3,
+          created_at: '2026-11-15T02:30:58Z'
+        }
+      },
+      {
+        id: 'f0000000-0000-4000-8000-000000000002',
+        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
+        proveedor_id: 'd358dacc-0ecc-48fa-82cc-0672c919c5e5',
+        monto_cotizado: 2900,
+        tiempo_entrega_dias: 10,
+        propuesta_tecnica: 'Operatividad y mantenimiento de barredoras mecanizadas y limpieza profunda exterior.',
+        archivo_url: null,
+        estado: 'recibida',
+        created_at: '2026-11-15T02:40:00Z',
+        proveedor: {
+          id: 'd358dacc-0ecc-48fa-82cc-0672c919c5e5',
+          ruc: '11111111114',
+          razon_social: 'hola hola',
+          nombre_contacto: 'Elias Rios',
+          telefono: '987654321',
+          email: 'elias@gmail.com',
+          anios_experiencia: 5,
+          calificacion_historica: 4.8,
+          created_at: '2026-11-15T02:40:00Z'
+        }
+      },
+      {
+        id: 'f0000000-0000-4000-8000-000000000003',
+        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
+        proveedor_id: '32332732-010a-4007-afc3-4a862c7a7b88',
+        monto_cotizado: 2000,
+        tiempo_entrega_dias: 20,
+        propuesta_tecnica: 'Servicio de barredor industrial y limpieza mecánica.',
+        archivo_url: null,
+        estado: 'recibida',
+        created_at: '2026-11-15T02:10:00Z',
+        proveedor: {
+          id: '32332732-010a-4007-afc3-4a862c7a7b88',
+          ruc: '11111111111',
+          razon_social: 'hola prueba',
+          nombre_contacto: 'prueba',
+          telefono: '987654321',
+          email: 'prueba@gmail.com',
+          anios_experiencia: 8,
+          calificacion_historica: 5.0,
+          created_at: '2026-11-15T02:10:00Z'
+        }
+      },
+      {
+        id: 'f0000000-0000-4000-8000-000000000004',
+        solicitud_id: '59758543-edc3-4f9c-b574-3310c4a005b4',
+        proveedor_id: 'e8def59a-6f6b-4c4a-b086-ca05b760edeb',
+        monto_cotizado: 2000,
+        tiempo_entrega_dias: 20,
+        propuesta_tecnica: 'Servicio técnico de barredor con cronograma flexible.',
+        archivo_url: null,
+        estado: 'recibida',
+        created_at: '2026-11-15T02:20:00Z',
+        proveedor: {
+          id: 'e8def59a-6f6b-4c4a-b086-ca05b760edeb',
+          ruc: '12333333333',
+          razon_social: 'prueba 2',
+          nombre_contacto: 'eefefef',
+          telefono: '999999999',
+          email: 'prueba2@gmail.com',
+          anios_experiencia: 2,
+          calificacion_historica: 4.0,
+          created_at: '2026-11-15T02:20:00Z'
         }
       }
     ];

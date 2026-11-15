@@ -330,19 +330,19 @@
                     <!-- Auditoría Técnica — CON ICONOS SVG (NO EMOJIS) -->
                     <td>
                       <span class="bq-audit-badge"
-                        [class.bq-audit-badge--green]="p.estado === 'seleccionada'"
-                        [class.bq-audit-badge--amber]="p.estado === 'recibida'"
-                        [class.bq-audit-badge--red]="p.estado === 'rechazada'">
-                        <svg *ngIf="p.estado === 'seleccionada'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        [class.bq-audit-badge--green]="auditoriaTipo(p, sol) === 'verde'"
+                        [class.bq-audit-badge--amber]="auditoriaTipo(p, sol) === 'ambar'"
+                        [class.bq-audit-badge--red]="auditoriaTipo(p, sol) === 'rojo'">
+                        <svg *ngIf="auditoriaTipo(p, sol) === 'verde'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>
-                        <svg *ngIf="p.estado === 'recibida'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg *ngIf="auditoriaTipo(p, sol) === 'ambar'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                         </svg>
-                        <svg *ngIf="p.estado === 'rechazada'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg *ngIf="auditoriaTipo(p, sol) === 'rojo'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
                         </svg>
-                        <span>{{ p.estado === 'seleccionada' ? 'Aprobado 96/100' : (p.estado === 'recibida' ? 'Pendiente Visita' : 'Excede Presupuesto') }}</span>
+                        <span>{{ auditoriaTexto(p, sol) }}</span>
                       </span>
                     </td>
 
@@ -396,8 +396,8 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span class="bq-winner-label">Proveedor ganador:</span>
-              <strong class="bq-winner-name">{{ propuestasDe(sol.id)[0]?.proveedor?.razon_social ?? 'TermoClima Industrial del Sur' }}</strong>
+              <span class="bq-winner-label">Proveedor adjudicado:</span>
+              <strong class="bq-winner-name">{{ proveedorGanador(sol)?.proveedor?.razon_social ?? 'Proveedor Adjudicado' }}</strong>
               <span class="bq-badge-adjudicado">Adjudicado</span>
             </div>
             <div class="bq-winner-actions">

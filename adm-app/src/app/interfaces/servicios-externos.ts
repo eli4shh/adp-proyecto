@@ -118,6 +118,7 @@ export interface NuevoProveedor {
   telefono: string;
   email: string;
   anios_experiencia: number;
+  calificacion_historica?: number;
 }
 
 export interface NuevaPropuesta {

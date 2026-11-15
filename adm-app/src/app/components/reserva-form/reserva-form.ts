@@ -210,6 +210,9 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
       didOpen: () => Swal.showLoading()
     });
 
+    const aniosExp = Number(v.anios_experiencia) || 0;
+    const califHistorica = Number(Math.min(5.0, Math.max(3.5, 3.5 + aniosExp * 0.25)).toFixed(1));
+
     this.servicios
       .enviarPostulacion({
         proveedor: {
@@ -218,7 +221,8 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
           nombre_contacto: v.nombre_contacto,
           telefono: v.telefono,
           email: v.email,
-          anios_experiencia: Number(v.anios_experiencia)
+          anios_experiencia: aniosExp,
+          calificacion_historica: califHistorica
         },
         propuesta: {
           solicitud_id: v.solicitud_id,

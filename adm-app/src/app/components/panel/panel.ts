@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../../core/services/auth.service';
 import { ServiciosExternosService } from '../../services/servicios-externos.service';
-import { EvaluacionService } from '../../services/evaluacion.service';
+import { EvaluacionService, PropuestaEvaluada } from '../../services/evaluacion.service';
 import {
   CategoriaServicio,
   EstadoPropuesta,
@@ -147,12 +147,76 @@ export class PanelComponent implements OnInit, OnDestroy {
     );
   }
 
+  rankingPorSolicitud = new Map<string, PropuestaEvaluada[]>();
+
   private cargarPropuestas(solicitudId: string) {
     this.suscripciones.push(
       this.servicios.listarPropuestas(solicitudId).subscribe((props) => {
         this.propuestasPorSolicitud.set(solicitudId, props);
+        if (props.length > 0) {
+          try {
+            const ranking = this.evaluacionService.evaluarPropuestas(props);
+            this.rankingPorSolicitud.set(solicitudId, ranking);
+          } catch (e) {
+            console.warn('Evaluación preliminar de propuestas:', e);
+          }
+        }
       })
     );
+  }
+
+  obtenerEvaluacion(solicitudId: string, propuestaId: string): PropuestaEvaluada | undefined {
+    const ranking = this.rankingPorSolicitud.get(solicitudId);
+    return ranking?.find((r) => r.propuesta.id === propuestaId);
+  }
+
+  proveedorGanador(sol: SolicitudCotizacion): PropuestaCotizacion | undefined {
+    const props = this.propuestasDe(sol.id);
+    if (!props.length) return undefined;
+    const seleccionada = props.find((p) => p.estado === 'seleccionada');
+    if (seleccionada) return seleccionada;
+    const ranking = this.rankingPorSolicitud.get(sol.id);
+    if (ranking && ranking.length > 0) {
+      return ranking[0].propuesta;
+    }
+    return props[0];
+  }
+
+  esGanador(p: PropuestaCotizacion, sol: SolicitudCotizacion): boolean {
+    if (p.estado === 'seleccionada') return true;
+    if (sol.estado === 'cerrada') {
+      const ganador = this.proveedorGanador(sol);
+      return ganador?.id === p.id;
+    }
+    return false;
+  }
+
+  auditoriaTexto(p: PropuestaCotizacion, sol: SolicitudCotizacion): string {
+    const ev = this.obtenerEvaluacion(sol.id, p.id);
+    const puntaje = ev ? `${ev.puntajeFinal.toFixed(0)}/100` : '';
+
+    if (sol.estado === 'cerrada') {
+      if (this.esGanador(p, sol)) {
+        return puntaje ? `Adjudicado ${puntaje}` : 'Adjudicado';
+      }
+      return 'Rechazado';
+    }
+
+    if (sol.estado === 'en_evaluacion') {
+      return puntaje ? `En Evaluación (${puntaje})` : 'En Evaluación';
+    }
+
+    return 'Propuesta Recibida';
+  }
+
+  auditoriaTipo(p: PropuestaCotizacion, sol: SolicitudCotizacion): 'verde' | 'ambar' | 'rojo' {
+    if (sol.estado === 'cerrada') {
+      return this.esGanador(p, sol) ? 'verde' : 'rojo';
+    }
+    if (sol.estado === 'en_evaluacion') {
+      return 'ambar';
+    }
+    return 'ambar';
   }
 
   recargar() {
