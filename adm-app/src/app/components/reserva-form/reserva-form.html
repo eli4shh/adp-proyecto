@@ -128,9 +128,16 @@
                 </span>
               </div>
               <div class="rf-ficha__col">
-                <span class="rf-ficha__label">ESTADO PROCESO</span>
+                <span class="rf-ficha__label">SEDE DE EJECUCIÓN</span>
                 <span class="rf-ficha__val rf-ficha__val--status">
                   <span class="rf-dot-blue"></span>
+                  {{ solicitudSeleccionada.sede || 'Sede Principal — Miraflores' }}
+                </span>
+              </div>
+              <div class="rf-ficha__col">
+                <span class="rf-ficha__label">ESTADO PROCESO</span>
+                <span class="rf-ficha__val rf-ficha__val--status">
+                  <span class="rf-dot-green"></span>
                   Convocatoria Abierta
                 </span>
               </div>
@@ -367,9 +374,13 @@
               
               <label class="rf-upload-btn" for="archivo-postulacion-input">
                 Examinar Archivo Local
-                <input id="archivo-postulacion-input" type="file" (change)="onArchivoSeleccionado($event)" accept="application/pdf,image/*" style="display:none;" />
+                <input id="archivo-postulacion-input" type="file" (change)="onArchivoSeleccionado($event)" accept="application/pdf" style="display:none;" />
               </label>
             </div>
+
+            <span class="rf-error" *ngIf="f['archivo_url'].invalid && f['archivo_url'].touched && !nombreArchivo">
+              Debe adjuntar obligatoriamente el expediente técnico y cotización desagregada en PDF.
+            </span>
 
             <!-- FICHA ARCHIVO ADJUNTO VERIFICADO (SOLO SE MUESTRA SI HAY ARCHIVO CARGADO) -->
             <div class="rf-file-preview" *ngIf="nombreArchivo">

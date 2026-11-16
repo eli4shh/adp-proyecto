@@ -72,10 +72,15 @@ export class PanelComponent implements OnInit, OnDestroy {
 
   private recalcularTodosLosRankings() {
     this.propuestasPorSolicitud.forEach((props, solId) => {
+      const sol = this.solicitudes.find((s) => s.id === solId);
+      // Blindaje de adjudicadas: no alterar licitaciones ya cerradas o adjudicadas
+      if (sol?.estado === 'cerrada') return;
+
       if (props.length > 0) {
         try {
-          const catId = this.solicitudes.find((s) => s.id === solId)?.categoria_id;
-          const pesos = this.evaluacionService.getPesosDeCategoria(catId);
+          const pesos = (sol?.pesos_ahp && typeof sol.pesos_ahp === 'object')
+            ? sol.pesos_ahp
+            : this.evaluacionService.getPesosDeCategoria(sol?.categoria_id);
           const ranking = this.evaluacionService.evaluarPropuestas(props, pesos);
           this.rankingPorSolicitud.set(solId, ranking);
         } catch (e) {
@@ -214,12 +219,14 @@ export class PanelComponent implements OnInit, OnDestroy {
           });
           this.propuestasPorSolicitud = mapaProps;
 
-          // Precomputar rankings con pesos adaptativos por categoría
+          // Precomputar rankings con pesos adaptativos por categoría o bases congeladas
           mapaProps.forEach((props, solId) => {
             if (props.length > 0) {
               try {
-                const catId = this.solicitudes.find((s) => s.id === solId)?.categoria_id;
-                const pesos = this.evaluacionService.getPesosDeCategoria(catId);
+                const sol = this.solicitudes.find((s) => s.id === solId);
+                const pesos = (sol?.pesos_ahp && typeof sol.pesos_ahp === 'object')
+                  ? sol.pesos_ahp
+                  : this.evaluacionService.getPesosDeCategoria(sol?.categoria_id);
                 const ranking = this.evaluacionService.evaluarPropuestas(props, pesos);
                 this.rankingPorSolicitud.set(solId, ranking);
               } catch (e) {
@@ -436,10 +443,8 @@ export class PanelComponent implements OnInit, OnDestroy {
 
   visualizarArchivoAdjunto(p: PropuestaCotizacion) {
     const razon = p.proveedor?.razon_social ?? 'Proveedor';
-    const ruc = p.proveedor?.ruc ?? '—';
-    const monto = Number(p.monto_cotizado).toLocaleString('es-PE', { minimumFractionDigits: 2 });
 
-    if (p.archivo_url && p.archivo_url.startsWith('data:')) {
+    if (p.archivo_url && (p.archivo_url.startsWith('data:') || p.archivo_url.startsWith('http'))) {
       Swal.fire({
         title: `Documento Técnico: ${razon}`,
         html: `
@@ -454,66 +459,11 @@ export class PanelComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Visor de expediente técnico digital institucional integrado (sin redirecciones a URLs externas)
     Swal.fire({
-      title: `Expediente Técnico Digital — ${razon}`,
-      html: `
-        <div style="text-align: left; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 22px; font-family: 'Inter', sans-serif; max-height: 65vh; overflow-y: auto;">
-          
-          <!-- Banner aclaratorio cuando no se adjuntó archivo -->
-          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 11.5px; color: #92400e; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
-            <span style="font-size: 15px; line-height: 1;">ℹ️</span>
-            <div>
-              <strong style="color: #78350f;">Aviso del Sistema:</strong> El postulante no adjuntó un archivo PDF externo. Por este motivo, el sistema generó automáticamente este <strong>Expediente Técnico Digital</strong> a partir de la memoria técnica y los datos ingresados en el formulario en línea.
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 16px;">
-            <div>
-              <div style="font-size: 13.5px; font-weight: 800; color: #1e3a8a; letter-spacing: 0.5px;">GRAND MARINA RESORT &amp; CONVENTION CENTER</div>
-              <div style="font-size: 11px; color: #64748b;">DIRECCIÓN DE COMPRAS Y CONTRATACIONES CORPORATIVAS</div>
-            </div>
-            <div style="text-align: right; font-size: 10.5px; color: #475569;">
-              <div>REF: EXP-TEC-${p.id.slice(0, 8).toUpperCase()}</div>
-              <div>FECHA: ${new Date(p.created_at).toLocaleDateString('es-PE')}</div>
-            </div>
-          </div>
-
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 12px; line-height: 1.6; color: #1e293b;">
-            <div><strong>Postor Oficial:</strong> ${razon} &nbsp;|&nbsp; <strong>RUC:</strong> <code style="color: #2563eb;">${ruc}</code></div>
-            <div><strong>Representante:</strong> ${p.proveedor?.nombre_contacto ?? '—'} &nbsp;|&nbsp; <strong>Contacto:</strong> ${p.proveedor?.telefono ?? '—'}</div>
-            <div><strong>Oferta Económica:</strong> S/ ${monto} &nbsp;|&nbsp; <strong>Plazo de Entrega:</strong> ${p.tiempo_entrega_dias} días</div>
-          </div>
-
-          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">1. MEMORIA DESCRIPTIVA Y ALCANCE TÉCNICO:</div>
-          <div style="font-size: 12px; color: #475569; line-height: 1.6; margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 6px; border-left: 3px solid #2563eb;">
-            ${p.propuesta_tecnica || 'El postor presenta el plan técnico de mantenimiento preventivo y correctivo con personal técnico homologado, herramientas de diagnóstico de última generación y repuestos originales conforme a los términos de referencia emitidos por Grand Marina Resort.'}
-          </div>
-
-          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">2. CONSTANCIAS Y HOMOLOGACIÓN:</div>
-          <ul style="font-size: 11.5px; color: #475569; margin: 0 0 16px 18px; line-height: 1.6;">
-            <li>Ficha RUC activa y habida en SUNAT sin omisiones tributarias.</li>
-            <li>Certificado de Póliza de Responsabilidad Civil contra terceros vigente.</li>
-            <li>Protocolo de Seguridad y Salud en el Trabajo (SST) para operaciones en sitio.</li>
-            <li>Garantía técnica de servicio de 12 meses pos-ejecución.</li>
-          </ul>
-
-          <div style="border-top: 1px dashed #cbd5e1; padding-top: 14px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10.5px; color: #64748b;">
-            <div>
-              <span style="display: inline-block; background: #ecfdf5; color: #059669; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid #a7f3d0;">
-                EXPEDIENTE VALIDADO DIGITALMENTE
-              </span>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-family: monospace; color: #94a3b8; font-size: 9px; margin-bottom: 4px;">Firma Digital Homologada</div>
-              <div style="font-weight: 600; color: #334155; border-top: 1px solid #94a3b8; padding-top: 2px;">${p.proveedor?.nombre_contacto ?? razon}</div>
-            </div>
-          </div>
-        </div>
-      `,
-      width: '720px',
-      showCancelButton: false,
-      confirmButtonText: 'Cerrar Documento',
+      icon: 'info',
+      title: 'Sin documento adjunto',
+      text: `El postor "${razon}" no cuenta con un archivo PDF adjunto en este registro previo de pruebas.`,
+      confirmButtonText: 'Entendido',
       confirmButtonColor: '#2563eb'
     });
   }

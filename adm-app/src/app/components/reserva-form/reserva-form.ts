@@ -82,7 +82,7 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
       monto_cotizado: [null, [Validators.required, Validators.min(1)]],
       tiempo_entrega_dias: [null, [Validators.required, Validators.min(1), Validators.max(365)]],
       propuesta_tecnica: ['', Validators.required],
-      archivo_url: ['']
+      archivo_url: ['', Validators.required]
     });
 
     // Escucha en tiempo real de cambios en el RUC para consulta con OpenRUC
@@ -200,11 +200,12 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
 
   formatoTituloSolicitud(s: SolicitudCotizacion): string {
     if (!s) return '';
-    if (s.titulo.startsWith('LIC-')) return s.titulo;
+    const sedeTexto = s.sede ? ` · ${s.sede.replace('Sede Principal — ', 'Sede ')}` : '';
+    if (s.titulo.startsWith('LIC-')) return `${s.titulo}${sedeTexto}`;
     const codigo = s.id.startsWith('a0000000-0000-4000-8000-')
       ? s.id.slice(-3).toUpperCase()
       : s.id.slice(0, 3).toUpperCase();
-    return `LIC-2025-${codigo}: ${s.titulo}`;
+    return `LIC-2025-${codigo}: ${s.titulo}${sedeTexto}`;
   }
 
   categoriaNombre(id: string): string {
@@ -282,6 +283,15 @@ export class ReservaFormComponent implements OnInit, OnDestroy {
         this.sunatError || 'Debe ingresar un RUC 20 activo y habido validado por SUNAT.',
         'warning'
       );
+      return;
+    }
+
+    if (!this.archivoBase64 && !this.form.get('archivo_url')?.value) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Expediente técnico obligatorio',
+        text: 'Debe adjuntar obligatoriamente el expediente técnico y propuesta en PDF para completar su postulación.'
+      });
       return;
     }
 

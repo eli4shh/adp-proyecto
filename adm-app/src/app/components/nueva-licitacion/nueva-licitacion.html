@@ -92,8 +92,10 @@
                 </div>
 
                 <div class="nl-field">
-                  <label class="nl-label">Sede / Área Usuaria</label>
-                  <input type="text" class="nl-input" value="Grand Marina Costa Azul · Sede Principal" readonly />
+                  <label for="nl-sede" class="nl-label">Sede Resort / Área Usuaria <span class="nl-required">*</span></label>
+                  <select id="nl-sede" formControlName="sede" class="nl-select">
+                    <option *ngFor="let s of sedesDisponibles" [value]="s">{{ s }}</option>
+                  </select>
                 </div>
               </div>
 
@@ -282,7 +284,9 @@
               <span class="nl-preview-chip nl-preview-chip--cat">
                 {{ nombreCategoriaSeleccionada }}
               </span>
-              <span class="nl-preview-chip nl-preview-chip--code">LIC-2025-GMR</span>
+              <span class="nl-preview-chip nl-preview-chip--code">
+                {{ f['sede'].value || 'Sede Principal — Miraflores' }}
+              </span>
             </div>
 
             <div class="nl-preview-stats">

@@ -257,6 +257,7 @@ export class ServiciosExternosService {
       if (!raw) return [];
       const list = JSON.parse(raw) as PropuestaCotizacion[];
       if (!Array.isArray(list)) return [];
+      // Filtra y depura automáticamente propuestas basura sin archivo PDF
       const validas = list.filter(
         (p): p is PropuestaCotizacion =>
           !!p &&
@@ -264,7 +265,9 @@ export class ServiciosExternosService {
           typeof p.id === 'string' &&
           p.id.trim().length > 0 &&
           typeof p.solicitud_id === 'string' &&
-          p.solicitud_id.trim().length > 0
+          p.solicitud_id.trim().length > 0 &&
+          typeof p.archivo_url === 'string' &&
+          p.archivo_url.trim().length > 0
       );
 
       // Deduplica eliminando cualquier duplicado previo del mismo proveedor en la misma licitación
@@ -370,7 +373,9 @@ export class ServiciosExternosService {
 
     return from(query.order('created_at', { ascending: false })).pipe(
       map((res) => {
-        const remotas = this.extraerDatos<PropuestaCotizacion>(res);
+        const remotas = this.extraerDatos<PropuestaCotizacion>(res).filter(
+          (p) => !!p.archivo_url && p.archivo_url.trim().length > 0
+        );
         const locales = this.obtenerPropuestasDeStorage(solicitudId);
         const todas = remotas.length > 0 ? this.combinarPropuestas(locales, remotas) : locales;
         return this.deduplicarPropuestas(todas);
@@ -438,6 +443,8 @@ export class ServiciosExternosService {
       descripcion: data.descripcion,
       presupuesto_referencial: data.presupuesto_referencial,
       fecha_limite: data.fecha_limite,
+      sede: data.sede || 'Sede Principal — Miraflores',
+      pesos_ahp: data.pesos_ahp ?? null,
       estado: 'abierta',
       created_at: new Date().toISOString()
     };
@@ -461,6 +468,8 @@ export class ServiciosExternosService {
           descripcion: data.descripcion,
           presupuesto_referencial: data.presupuesto_referencial,
           fecha_limite: data.fecha_limite,
+          sede: data.sede || 'Sede Principal — Miraflores',
+          pesos_ahp: data.pesos_ahp ?? null,
           estado: 'abierta'
         })
         .select('*, categoria:categorias_servicio(*)')
@@ -547,18 +556,24 @@ export class ServiciosExternosService {
             estado: 'recibida' as const
           };
 
-          // Inserción en Supabase sin .select() para evitar error RLS 42501
-          try {
-            await this.supabase!.from('propuestas_cotizacion').insert(propData);
-          } catch (insertErr) {
-            console.warn('Advertencia en inserción en Supabase:', insertErr);
-          }
-
-          const propuestaGuardada: PropuestaCotizacion = {
+          let propuestaGuardada: PropuestaCotizacion = {
             ...propData,
             created_at: new Date().toISOString(),
             proveedor
           };
+
+          try {
+            const resProp = await this.supabase!
+              .from('propuestas_cotizacion')
+              .insert(propData)
+              .select('*, proveedor:proveedores(*)')
+              .single();
+            if (resProp.data) {
+              propuestaGuardada = resProp.data as PropuestaCotizacion;
+            }
+          } catch (insertErr) {
+            console.warn('Advertencia en inserción en Supabase:', insertErr);
+          }
 
           this.guardarEnStorage(propuestaGuardada);
           return { proveedor, propuesta: propuestaGuardada };

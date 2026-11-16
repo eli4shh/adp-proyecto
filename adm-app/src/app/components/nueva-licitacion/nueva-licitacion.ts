@@ -32,6 +32,12 @@ export class NuevaLicitacionComponent implements OnInit, OnDestroy {
   categorias: CategoriaServicio[] = [];
   form!: FormGroup;
 
+  sedesDisponibles = [
+    'Sede Principal — Miraflores',
+    'Sede Costa Norte — Trujillo',
+    'Sede Valle Sur — Surco'
+  ];
+
   pesosActivos: PesosEvaluacion = { ...PESOS_POR_DEFECTO };
   private suscripciones: Subscription[] = [];
 
@@ -44,6 +50,7 @@ export class NuevaLicitacionComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       titulo: ['', Validators.required],
       categoria_id: ['', Validators.required],
+      sede: ['Sede Principal — Miraflores', Validators.required],
       presupuesto_referencial: [null, [Validators.required, Validators.min(1)]],
       fecha_limite: ['', Validators.required],
       descripcion: ['', Validators.required],
@@ -163,7 +170,9 @@ export class NuevaLicitacionComponent implements OnInit, OnDestroy {
         categoria_id: v.categoria_id as string,
         descripcion: descFinal,
         presupuesto_referencial: Number(v.presupuesto_referencial),
-        fecha_limite: v.fecha_limite as string
+        fecha_limite: v.fecha_limite as string,
+        sede: v.sede || 'Sede Principal — Miraflores',
+        pesos_ahp: { ...this.pesosActivos }
       } satisfies NuevaSolicitudPayload)
       .subscribe({
         next: (solicitud) => {
@@ -172,6 +181,7 @@ export class NuevaLicitacionComponent implements OnInit, OnDestroy {
           this.form.reset({
             titulo: '',
             categoria_id: '',
+            sede: 'Sede Principal — Miraflores',
             presupuesto_referencial: null,
             fecha_limite: '',
             descripcion: '',

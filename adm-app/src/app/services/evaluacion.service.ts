@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { PropuestaCotizacion } from '../interfaces/servicios-externos';
+import { SupabaseService } from '../core/services/supabase.service';
 
 /**
  * Algoritmo de evaluación multicriterio ponderado (AHP).
@@ -122,8 +123,9 @@ export class EvaluacionService {
   private readonly cambioPesosSubject = new Subject<void>();
   readonly cambioPesos$: Observable<void> = this.cambioPesosSubject.asObservable();
 
-  constructor() {
+  constructor(@Optional() private supabaseService?: SupabaseService) {
     this.cargarPesosDeStorage();
+    this.cargarPesosDeSupabase();
   }
 
   private cargarPesosDeStorage() {
@@ -137,6 +139,27 @@ export class EvaluacionService {
     } catch {
       this.pesosCategorias = {};
     }
+  }
+
+  private async cargarPesosDeSupabase() {
+    try {
+      const client = this.supabaseService?.getClient();
+      if (!client) return;
+      const { data } = await client.from('categorias_servicio').select('id, pesos_ahp');
+      if (data && Array.isArray(data)) {
+        let huboCambios = false;
+        data.forEach((row: { id: string; pesos_ahp: PesosEvaluacion | null }) => {
+          if (row.pesos_ahp && typeof row.pesos_ahp === 'object') {
+            this.pesosCategorias[row.id] = row.pesos_ahp;
+            huboCambios = true;
+          }
+        });
+        if (huboCambios) {
+          this.guardarPesosEnStorage();
+          this.cambioPesosSubject.next();
+        }
+      }
+    } catch {}
   }
 
   private guardarPesosEnStorage() {
@@ -201,12 +224,29 @@ export class EvaluacionService {
     this.pesosCategorias[categoriaId] = { ...nuevosPesos };
     this.guardarPesosEnStorage();
     this.cambioPesosSubject.next();
+
+    // Sincronización en la nube (Supabase)
+    try {
+      const client = this.supabaseService?.getClient();
+      if (client) {
+        client.from('categorias_servicio').update({ pesos_ahp: nuevosPesos }).eq('id', categoriaId).then();
+      }
+    } catch {}
   }
 
   restablecerPesosCategoria(categoriaId: string): PesosEvaluacion {
     delete this.pesosCategorias[categoriaId];
     this.guardarPesosEnStorage();
     this.cambioPesosSubject.next();
+
+    // Sincronización en la nube (Supabase)
+    try {
+      const client = this.supabaseService?.getClient();
+      if (client) {
+        client.from('categorias_servicio').update({ pesos_ahp: null }).eq('id', categoriaId).then();
+      }
+    } catch {}
+
     const def = CONFIGURACIONES_CATEGORIA_DEFECTO[categoriaId];
     return def ? { ...def.pesos } : { ...PESOS_POR_DEFECTO };
   }

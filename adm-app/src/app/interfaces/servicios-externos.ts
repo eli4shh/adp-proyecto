@@ -13,6 +13,7 @@ export interface CategoriaServicio {
   icono: string | null;
   activo: boolean;
   created_at: string;
+  pesos_ahp?: any;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +47,8 @@ export interface SolicitudCotizacion {
   fecha_limite: string | null;
   estado: EstadoSolicitud;
   created_at: string;
+  sede?: string | null;
+  pesos_ahp?: any;
   /** Join opcional (Supabase `*categorias_servicio` / join en memoria). */
   categoria?: CategoriaServicio;
 }
@@ -149,6 +152,8 @@ export interface NuevaSolicitudPayload {
   presupuesto_referencial: number | null;
   /** Formato YYYY-MM-DD */
   fecha_limite: string | null;
+  sede?: string;
+  pesos_ahp?: any;
 }
 
 export type FiltrosSolicitud = {

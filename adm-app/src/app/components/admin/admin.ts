@@ -229,9 +229,11 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   private calcularRanking() {
-    const pesos = this.solicitudActiva?.categoria_id
-      ? this.evaluacionService.getPesosDeCategoria(this.solicitudActiva.categoria_id)
-      : this.evaluacionService.getPesos();
+    const pesos = (this.solicitudActiva?.pesos_ahp && typeof this.solicitudActiva.pesos_ahp === 'object')
+      ? this.solicitudActiva.pesos_ahp
+      : (this.solicitudActiva?.categoria_id
+        ? this.evaluacionService.getPesosDeCategoria(this.solicitudActiva.categoria_id)
+        : this.evaluacionService.getPesos());
 
     this.resultados = this.propuestas.length
       ? this.evaluacionService.evaluarPropuestas(this.propuestas, pesos)
